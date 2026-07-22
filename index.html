@@ -52,7 +52,7 @@
   .btn-ponto:disabled{filter:grayscale(1) brightness(.55); cursor:not-allowed}
   .b-entrada{background:var(--entrada)}
   .b-pausa{background:var(--pausa)}
-  .b-retorno{background:var(--retorno)}
+  .b-retorno{background:var(--retorno); font-size:16px; line-height:1.15}
   .b-saida{background:var(--saida)}
 
   .btn{
@@ -142,9 +142,9 @@
       <button class="btn-ponto b-entrada" data-tipo="entrada" onclick="iniciarRegistro('entrada')">
         <span class="ic">🟢</span>ENTRADA</button>
       <button class="btn-ponto b-pausa" data-tipo="pausa" onclick="iniciarRegistro('pausa')">
-        <span class="ic">⏸️</span>PAUSA</button>
+        <span class="ic">🍽️</span>ALMOÇO</button>
       <button class="btn-ponto b-retorno" data-tipo="retorno" onclick="iniciarRegistro('retorno')">
-        <span class="ic">▶️</span>RETORNO</button>
+        <span class="ic">▶️</span>RETORNO DO ALMOÇO</button>
       <button class="btn-ponto b-saida" data-tipo="saida" onclick="iniciarRegistro('saida')">
         <span class="ic">🔴</span>SAÍDA</button>
     </div>
@@ -200,7 +200,11 @@ const BAHIA_OFFSET = "-03:00";          // America/Bahia fixo
 const FOTO_MAX_LADO = 1280;             // px maior lado
 const FOTO_QUALIDADE = 0.7;             // JPEG
 const SYNC_INTERVAL_MS = 60000;         // fallback de sync (app aberto)
-const LABELS = {entrada:"Entrada", saida:"Saída", pausa:"Pausa", retorno:"Retorno"};
+// Rótulos VISÍVEIS (o valor interno do tipo continua pausa/retorno — não muda banco nem webhook)
+const LABELS = {entrada:"Entrada", saida:"Saída", pausa:"Almoço", retorno:"Retorno do almoço"};
+// Frase de confirmação (concordância de gênero correta por tipo)
+const CONF = {entrada:"Entrada registrada", saida:"Saída registrada",
+              pausa:"Almoço registrado", retorno:"Retorno do almoço registrado"};
 
 /* ---------------------- estado / storage ---------------------- */
 const LS_DEVICE = "ponto_device_id";
@@ -486,13 +490,13 @@ function mostrarResultado(estado, tipo, resp){
         msg=document.getElementById("res-msg");
   const hora = horaBahia(new Date());
   if(estado==="ok"){
-    ic.textContent="✅"; tit.textContent=LABELS[tipo]+" registrada";
+    ic.textContent="✅"; tit.textContent=CONF[tipo];
     let m="às "+hora;
     if(resp && resp.nome_local) m+=" — "+resp.nome_local;
     if(resp && resp.fora_do_raio) m+="\n⚠️ Localização fora da área cadastrada — sujeito a revisão.";
     msg.textContent=m;
   }else{
-    ic.textContent="📴"; tit.textContent=LABELS[tipo]+" salva";
+    ic.textContent="📴"; tit.textContent="Registro salvo";
     msg.textContent="Sem conexão — o registro foi salvo e será enviado automaticamente quando a internet voltar.";
   }
   go("s-resultado");
