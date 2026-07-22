@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0f1115">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="manifest.json">
+<title>Ponto Braskem</title>
+<style>
+  :root{
+    --bg:#0f1115; --card:#171a21; --card2:#1e222b; --line:#2a2f3a;
+    --txt:#eef1f6; --muted:#9aa3b2; --brand:#3b82f6;
+    --ok:#22c55e; --warn:#f59e0b; --err:#ef4444;
+    --entrada:#22c55e; --pausa:#f59e0b; --retorno:#38bdf8; --saida:#ef4444;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent}
+  html,body{margin:0; height:100%}
+  body{
+    background:var(--bg); color:var(--txt);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,system-ui,sans-serif;
+    font-size:18px; line-height:1.4;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+    overscroll-behavior:none;
+  }
+  #app{max-width:520px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column}
+  .screen{flex:1; display:none; flex-direction:column; padding:20px; gap:16px}
+  .screen.active{display:flex}
+  .center{justify-content:center; align-items:center; text-align:center}
+  h1{font-size:26px; margin:0}
+  h2{font-size:22px; margin:0}
+  p{margin:0; color:var(--muted)}
+  .big{font-size:20px}
+  .hint{font-size:15px; color:var(--muted)}
+  .card{background:var(--card); border:1px solid var(--line); border-radius:16px; padding:18px}
+  .logo{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,#3b82f6,#22c55e);
+        display:flex;align-items:center;justify-content:center;font-size:36px}
+  .spinner{width:44px;height:44px;border:4px solid var(--line);border-top-color:var(--brand);
+           border-radius:50%;animation:spin 1s linear infinite}
+  @keyframes spin{to{transform:rotate(360deg)}}
+
+  /* Botões grandes de registro */
+  .grid{display:grid; grid-template-columns:1fr 1fr; gap:14px}
+  .btn-ponto{
+    border:none; border-radius:18px; padding:26px 10px; color:#0b0d11; font-weight:800;
+    font-size:22px; letter-spacing:.5px; display:flex; flex-direction:column; align-items:center; gap:8px;
+    cursor:pointer; min-height:120px; transition:transform .06s ease, filter .2s;
+  }
+  .btn-ponto:active{transform:scale(.97)}
+  .btn-ponto .ic{font-size:34px; line-height:1}
+  .btn-ponto:disabled{filter:grayscale(1) brightness(.55); cursor:not-allowed}
+  .b-entrada{background:var(--entrada)}
+  .b-pausa{background:var(--pausa)}
+  .b-retorno{background:var(--retorno)}
+  .b-saida{background:var(--saida)}
+
+  .btn{
+    appearance:none; border:1px solid var(--line); background:var(--card2); color:var(--txt);
+    border-radius:14px; padding:16px; font-size:18px; font-weight:600; width:100%; cursor:pointer;
+  }
+  .btn:active{transform:scale(.98)}
+  .btn.primary{background:var(--brand); border-color:var(--brand); color:#fff}
+  .btn.ghost{background:transparent}
+  .row{display:flex; gap:12px}
+  .row>*{flex:1}
+
+  .topbar{display:flex; align-items:center; justify-content:space-between}
+  .badge{background:var(--warn); color:#3a2a00; font-weight:800; font-size:14px;
+         border-radius:999px; padding:4px 12px}
+  .badge.zero{display:none}
+  .pill{display:inline-flex; align-items:center; gap:6px; font-size:14px; color:var(--muted)}
+  .dot{width:9px;height:9px;border-radius:50%;background:var(--muted)}
+  .dot.on{background:var(--ok)} .dot.off{background:var(--err)}
+
+  /* Câmera */
+  #cam-video{width:100%; border-radius:16px; background:#000; aspect-ratio:3/4; object-fit:cover}
+  .result-ic{font-size:64px}
+  .toast{position:fixed; left:50%; bottom:24px; transform:translateX(-50%);
+         background:var(--card2); border:1px solid var(--line); color:var(--txt);
+         padding:12px 18px; border-radius:12px; font-size:15px; max-width:90%; text-align:center;
+         opacity:0; pointer-events:none; transition:opacity .25s; z-index:50}
+  .toast.show{opacity:1}
+  .a2hs{background:var(--card2); border:1px dashed var(--line); border-radius:14px; padding:14px; font-size:15px}
+  .muted-box{background:var(--card2); border-radius:12px; padding:12px; font-size:14px; color:var(--muted)}
+  canvas{display:none}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- CARREGANDO -->
+  <section id="s-loading" class="screen center active">
+    <div class="spinner"></div>
+    <p id="loading-msg">Carregando…</p>
+  </section>
+
+  <!-- SEM VÍNCULO (aberto sem token e sem sessão) -->
+  <section id="s-novinculo" class="screen center">
+    <div class="logo">🕒</div>
+    <h1>Ponto Braskem</h1>
+    <p class="big">Abra pelo <b>link pessoal</b> que você recebeu no WhatsApp para ativar o ponto neste aparelho.</p>
+    <div class="muted-box">O link é individual e só funciona uma vez. Se você já ativou, use o ícone do app na tela inicial.</div>
+  </section>
+
+  <!-- VINCULANDO -->
+  <section id="s-vinculando" class="screen center">
+    <div class="spinner"></div>
+    <p>Ativando seu ponto…</p>
+  </section>
+
+  <!-- ERRO DE VÍNCULO -->
+  <section id="s-vinculo-erro" class="screen center">
+    <div class="result-ic">🔒</div>
+    <h2 id="vinculo-erro-titulo">Link já utilizado</h2>
+    <p id="vinculo-erro-msg">Este link já foi ativado em outro aparelho. Fale com o administrador.</p>
+  </section>
+
+  <!-- VÍNCULO OK / A2HS -->
+  <section id="s-vinculo-ok" class="screen center">
+    <div class="result-ic">✅</div>
+    <h2>Tudo certo, <span id="ok-nome">!</span></h2>
+    <p>Seu ponto está ativo neste aparelho.</p>
+    <div class="a2hs" id="a2hs-box">
+      <b>Adicione à tela inicial</b> para abrir rápido:<br>
+      <span id="a2hs-instr"></span>
+    </div>
+    <button class="btn primary" onclick="go('s-home'); refreshHome()">Começar</button>
+  </section>
+
+  <!-- HOME (uso diário) -->
+  <section id="s-home" class="screen">
+    <div class="topbar">
+      <div>
+        <h1 id="ola">Olá 👋</h1>
+        <span class="pill"><span id="net-dot" class="dot"></span><span id="net-txt">—</span></span>
+      </div>
+      <span id="badge-pend" class="badge zero">0 pendentes</span>
+    </div>
+
+    <div class="grid" style="margin-top:6px">
+      <button class="btn-ponto b-entrada" data-tipo="entrada" onclick="iniciarRegistro('entrada')">
+        <span class="ic">🟢</span>ENTRADA</button>
+      <button class="btn-ponto b-pausa" data-tipo="pausa" onclick="iniciarRegistro('pausa')">
+        <span class="ic">⏸️</span>PAUSA</button>
+      <button class="btn-ponto b-retorno" data-tipo="retorno" onclick="iniciarRegistro('retorno')">
+        <span class="ic">▶️</span>RETORNO</button>
+      <button class="btn-ponto b-saida" data-tipo="saida" onclick="iniciarRegistro('saida')">
+        <span class="ic">🔴</span>SAÍDA</button>
+    </div>
+
+    <div id="ultimo-box" class="muted-box" style="display:none"></div>
+    <div style="flex:1"></div>
+    <p class="hint" id="pend-hint" style="display:none"></p>
+  </section>
+
+  <!-- CÂMERA -->
+  <section id="s-camera" class="screen">
+    <div class="topbar">
+      <h2 id="cam-titulo">Registrar</h2>
+      <button class="btn ghost" style="width:auto;padding:10px 14px" onclick="cancelarCamera()">Cancelar</button>
+    </div>
+    <video id="cam-video" playsinline autoplay muted></video>
+    <p class="hint" id="cam-hint">Enquadre o rosto e toque em registrar.</p>
+    <button class="btn primary" id="cam-capturar" onclick="capturar()">📸 Registrar ponto</button>
+    <!-- Fallback de câmera (sem getUserMedia) -->
+    <input id="cam-fallback" type="file" accept="image/*" capture="user" style="display:none" onchange="capturarFallback(event)">
+  </section>
+
+  <!-- ENVIANDO -->
+  <section id="s-enviando" class="screen center">
+    <div class="spinner"></div>
+    <p id="enviando-msg">Registrando…</p>
+  </section>
+
+  <!-- RESULTADO -->
+  <section id="s-resultado" class="screen center">
+    <div class="result-ic" id="res-ic">✅</div>
+    <h2 id="res-titulo"></h2>
+    <p id="res-msg"></p>
+    <button class="btn primary" onclick="voltarHome()">OK</button>
+  </section>
+
+</div>
+
+<div id="toast" class="toast"></div>
+<canvas id="work-canvas"></canvas>
+
+<script>
+/* =====================================================================
+   CONFIG — n8n (Braskem). Fuso SEMPRE America/Bahia (UTC-3, sem DST).
+   ===================================================================== */
+const WEBHOOK_BASE = "https://giantfalcon-n8n.cloudfy.live/webhook";
+const EP = {
+  vincular:  WEBHOOK_BASE + "/ponto-vincular",
+  registrar: WEBHOOK_BASE + "/ponto-registrar",
+  status:    WEBHOOK_BASE + "/ponto-status",
+};
+const BAHIA_OFFSET = "-03:00";          // America/Bahia fixo
+const FOTO_MAX_LADO = 1280;             // px maior lado
+const FOTO_QUALIDADE = 0.7;             // JPEG
+const SYNC_INTERVAL_MS = 60000;         // fallback de sync (app aberto)
+const LABELS = {entrada:"Entrada", saida:"Saída", pausa:"Pausa", retorno:"Retorno"};
+
+/* ---------------------- estado / storage ---------------------- */
+const LS_DEVICE = "ponto_device_id";
+const LS_SESSAO = "ponto_sessao";       // {profissional_id, nome, session_key}
+let stream = null;                      // MediaStream ativo
+let tipoPendente = null;
+let enviando = false;
+
+function getDeviceId(){
+  let id = localStorage.getItem(LS_DEVICE);
+  if(!id){ id = uuid(); localStorage.setItem(LS_DEVICE, id); }
+  return id;
+}
+function getSessao(){ try{ return JSON.parse(localStorage.getItem(LS_SESSAO)||"null"); }catch(e){ return null; } }
+function setSessao(s){ localStorage.setItem(LS_SESSAO, JSON.stringify(s)); }
+function uuid(){
+  if(crypto.randomUUID) return crypto.randomUUID();
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>
+    (c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+}
+
+/* ---------------------- helpers de tela ---------------------- */
+function go(id){
+  document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active");
+}
+let toastTimer;
+function toast(msg){
+  const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),3200);
+}
+
+/* ---------------------- fuso America/Bahia ---------------------- */
+// Converte um instante (Date) para ISO com offset fixo -03:00 (America/Bahia).
+function isoBahia(date){
+  const p = new Intl.DateTimeFormat("en-CA",{
+    timeZone:"America/Bahia", year:"numeric",month:"2-digit",day:"2-digit",
+    hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false
+  }).formatToParts(date).reduce((o,x)=>(o[x.type]=x.value,o),{});
+  const hh = p.hour==="24"?"00":p.hour;
+  return `${p.year}-${p.month}-${p.day}T${hh}:${p.minute}:${p.second}${BAHIA_OFFSET}`;
+}
+function horaBahia(date){
+  return new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Bahia",hour:"2-digit",minute:"2-digit"}).format(date);
+}
+function diaBahia(date){ return isoBahia(date).slice(0,10); }
+
+/* =====================================================================
+   IndexedDB — fila offline (store: fila_pontos)
+   ===================================================================== */
+const DB_NAME="ponto_db", DB_VER=1, STORE="fila_pontos";
+function idb(){
+  return new Promise((res,rej)=>{
+    const r=indexedDB.open(DB_NAME,DB_VER);
+    r.onupgradeneeded=()=>{ const db=r.result;
+      if(!db.objectStoreNames.contains(STORE))
+        db.createObjectStore(STORE,{keyPath:"local_id"}); };
+    r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error);
+  });
+}
+async function filaAdd(item){ const db=await idb();
+  return new Promise((res,rej)=>{ const tx=db.transaction(STORE,"readwrite");
+    tx.objectStore(STORE).put(item); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function filaAll(){ const db=await idb();
+  return new Promise((res,rej)=>{ const tx=db.transaction(STORE,"readonly");
+    const rq=tx.objectStore(STORE).getAll(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>rej(rq.error); }); }
+async function filaDel(local_id){ const db=await idb();
+  return new Promise((res,rej)=>{ const tx=db.transaction(STORE,"readwrite");
+    tx.objectStore(STORE).delete(local_id); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function filaCount(){ return (await filaAll()).length; }
+
+/* =====================================================================
+   VÍNCULO (primeiro acesso via ?t=TOKEN)
+   ===================================================================== */
+async function vincular(token){
+  go("s-vinculando");
+  try{
+    const r = await fetch(EP.vincular,{
+      method:"POST", headers:{"Content-Type":"application/json"},
+      body: JSON.stringify({ token, device_id: getDeviceId() })
+    });
+    const data = await r.json();
+    if(data && data.ok){
+      setSessao({ profissional_id:data.profissional_id, nome:data.nome, session_key:data.session_key });
+      document.getElementById("ok-nome").textContent = primeiroNome(data.nome)+"!";
+      document.getElementById("a2hs-instr").innerHTML = instrucaoA2HS();
+      // limpa o token da URL (evita reprocessar)
+      history.replaceState({}, "", location.pathname);
+      go("s-vinculo-ok");
+    }else{
+      mostrarErroVinculo(data && data.motivo);
+    }
+  }catch(e){
+    // Sem rede no primeiro acesso: não dá pra ativar (precisa validar token no servidor).
+    document.getElementById("vinculo-erro-titulo").textContent = "Sem conexão";
+    document.getElementById("vinculo-erro-msg").textContent =
+      "Não foi possível ativar agora. Conecte-se à internet e abra o link novamente.";
+    go("s-vinculo-erro");
+  }
+}
+function mostrarErroVinculo(motivo){
+  const t=document.getElementById("vinculo-erro-titulo");
+  const m=document.getElementById("vinculo-erro-msg");
+  if(motivo==="token_usado"){ t.textContent="Link já utilizado";
+    m.textContent="Este link já foi ativado em outro aparelho. Fale com o administrador."; }
+  else { t.textContent="Link inválido";
+    m.textContent="Não reconhecemos este link. Confira a mensagem do WhatsApp ou fale com o administrador."; }
+  go("s-vinculo-erro");
+}
+function primeiroNome(n){ return (n||"").trim().split(/\s+/)[0]||n||""; }
+function instrucaoA2HS(){
+  const ios = /iphone|ipad|ipod/i.test(navigator.userAgent);
+  return ios
+    ? "no Safari, toque em <b>Compartilhar</b> (⬆️) → <b>Adicionar à Tela de Início</b>."
+    : "toque no menu <b>⋮</b> do navegador → <b>Adicionar à tela inicial</b>.";
+}
+
+/* =====================================================================
+   HOME
+   ===================================================================== */
+async function refreshHome(){
+  const s=getSessao(); if(!s) return;
+  document.getElementById("ola").textContent = "Olá, "+primeiroNome(s.nome)+" 👋";
+  atualizarRede();
+  await atualizarPendentes();
+  await bloquearTipoRepetido();
+}
+function atualizarRede(){
+  const on=navigator.onLine;
+  document.getElementById("net-dot").className="dot "+(on?"on":"off");
+  document.getElementById("net-txt").textContent = on?"Conectado":"Sem conexão";
+}
+async function atualizarPendentes(){
+  const n=await filaCount();
+  const b=document.getElementById("badge-pend");
+  b.textContent = n+" pendente"+(n===1?"":"s");
+  b.classList.toggle("zero", n===0);
+  const hint=document.getElementById("pend-hint");
+  if(n>0){ hint.style.display="block";
+    hint.textContent="📴 "+n+" registro(s) aguardando envio — enviaremos automaticamente quando houver conexão."; }
+  else hint.style.display="none";
+}
+// Bloqueia repetir o mesmo tipo (consulta status online; offline usa a fila local).
+async function bloquearTipoRepetido(){
+  habilitarTodos();
+  let ultimoTipo=null, quando=null;
+  const s=getSessao();
+  if(navigator.onLine && s){
+    try{
+      const r=await fetch(EP.status+"?session_key="+encodeURIComponent(s.session_key));
+      if(r.ok){ const d=await r.json(); if(d && d.ultimo){ ultimoTipo=d.ultimo.tipo; quando=d.ultimo.registrado_em; } }
+    }catch(e){/* offline: cai pra fila local */}
+  }
+  // fila local (registros ainda não enviados hoje)
+  const hoje=diaBahia(new Date());
+  const locais=(await filaAll()).filter(x=>diaBahia(new Date(x.registrado_em))===hoje)
+                                .sort((a,b)=>a.registrado_em<b.registrado_em?-1:1);
+  if(locais.length){ ultimoTipo=locais[locais.length-1].tipo; quando=locais[locais.length-1].registrado_em; }
+
+  const box=document.getElementById("ultimo-box");
+  if(ultimoTipo){
+    const btn=document.querySelector(`.btn-ponto[data-tipo="${ultimoTipo}"]`);
+    if(btn) btn.disabled=true;
+    box.style.display="block";
+    box.innerHTML="Último registro de hoje: <b>"+LABELS[ultimoTipo]+"</b>"+
+      (quando?(" às "+horaBahia(new Date(quando))):"")+". Toque no próximo tipo.";
+  } else box.style.display="none";
+}
+function habilitarTodos(){ document.querySelectorAll(".btn-ponto").forEach(b=>b.disabled=false); }
+
+/* =====================================================================
+   REGISTRO — câmera (getUserMedia principal, input fallback) + GPS
+   ===================================================================== */
+async function iniciarRegistro(tipo){
+  tipoPendente=tipo;
+  document.getElementById("cam-titulo").textContent="Registrar "+LABELS[tipo];
+  go("s-camera");
+  try{
+    stream = await navigator.mediaDevices.getUserMedia({
+      video:{ facingMode:"user", width:{ideal:1280}, height:{ideal:1280} }, audio:false });
+    const v=document.getElementById("cam-video");
+    v.srcObject=stream; v.style.display="block";
+    document.getElementById("cam-capturar").style.display="block";
+  }catch(e){
+    // Fallback: input file com captura direta pela câmera frontal
+    document.getElementById("cam-video").style.display="none";
+    document.getElementById("cam-capturar").style.display="none";
+    document.getElementById("cam-hint").textContent="Abrindo a câmera…";
+    document.getElementById("cam-fallback").click();
+  }
+}
+function pararCamera(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
+function cancelarCamera(){ pararCamera(); tipoPendente=null; voltarHome(); }
+
+// GPS no instante da captura (não bloqueia o ponto se falhar).
+function pegarGPS(){
+  return new Promise(res=>{
+    if(!navigator.geolocation) return res(null);
+    navigator.geolocation.getCurrentPosition(
+      p=>res({ latitude:p.coords.latitude, longitude:p.coords.longitude,
+               accuracy:p.coords.accuracy, ts:p.timestamp }),
+      ()=>res(null),
+      { enableHighAccuracy:true, timeout:15000, maximumAge:0 }
+    );
+  });
+}
+
+// Comprime a foto (canvas): máx 1280px maior lado, JPEG 0.7 → base64 (sem prefixo).
+function comprimir(sourceEl){
+  const w0=sourceEl.videoWidth||sourceEl.naturalWidth;
+  const h0=sourceEl.videoHeight||sourceEl.naturalHeight;
+  const escala=Math.min(1, FOTO_MAX_LADO/Math.max(w0,h0));
+  const w=Math.round(w0*escala), h=Math.round(h0*escala);
+  const c=document.getElementById("work-canvas"); c.width=w; c.height=h;
+  c.getContext("2d").drawImage(sourceEl,0,0,w,h);
+  const dataUrl=c.toDataURL("image/jpeg",FOTO_QUALIDADE);
+  return dataUrl.split(",")[1];
+}
+
+async function capturar(){
+  if(enviando) return;
+  const v=document.getElementById("cam-video");
+  if(!v.videoWidth){ toast("Aguarde a câmera abrir…"); return; }
+  const agora=new Date();
+  const foto=comprimir(v);                 // instante da foto
+  const gps=await pegarGPS();              // GPS ~no mesmo instante
+  pararCamera();
+  await enviarRegistro({ tipo:tipoPendente, agora, foto, gps });
+}
+async function capturarFallback(ev){
+  const file=ev.target.files && ev.target.files[0];
+  if(!file){ voltarHome(); return; }
+  const agora=new Date();
+  const img=new Image();
+  const gpsP=pegarGPS();
+  img.onload=async()=>{ const foto=comprimir(img); const gps=await gpsP;
+    await enviarRegistro({ tipo:tipoPendente, agora, foto, gps }); URL.revokeObjectURL(img.src); };
+  img.src=URL.createObjectURL(file);
+}
+
+/* =====================================================================
+   MONTAGEM DO PAYLOAD + ENVIO (online) / FILA (offline)
+   ===================================================================== */
+function montarPayload({tipo, agora, foto, gps}){
+  const s=getSessao();
+  return {
+    session_key:s.session_key, profissional_id:s.profissional_id, device_id:getDeviceId(),
+    tipo,
+    registrado_em: isoBahia(agora),
+    gps_timestamp: gps ? isoBahia(new Date(gps.ts)) : null,
+    latitude: gps ? gps.latitude : null,
+    longitude: gps ? gps.longitude : null,
+    accuracy_metros: gps ? gps.accuracy : null,
+    foto_base64: foto,
+    local_id: uuid(),          // idempotência do lado do cliente (dedup em retries)
+  };
+}
+async function enviarRegistro(dados){
+  enviando=true; go("s-enviando");
+  document.getElementById("enviando-msg").textContent="Registrando "+LABELS[dados.tipo].toLowerCase()+"…";
+  const payload=montarPayload(dados);
+  if(!navigator.onLine){ await guardarOffline(payload); enviando=false; return; }
+  try{
+    const r=await fetch(EP.registrar,{ method:"POST",
+      headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d=await r.json();
+    enviando=false;
+    mostrarResultado("ok", payload.tipo, d);
+  }catch(e){
+    // erro de rede → cai pro fluxo offline
+    await guardarOffline(payload); enviando=false;
+  }
+}
+async function guardarOffline(payload){
+  payload.origem="offline";
+  await filaAdd(payload);
+  mostrarResultado("offline", payload.tipo, null);
+  registrarSync();
+}
+function mostrarResultado(estado, tipo, resp){
+  const ic=document.getElementById("res-ic"), tit=document.getElementById("res-titulo"),
+        msg=document.getElementById("res-msg");
+  const hora = horaBahia(new Date());
+  if(estado==="ok"){
+    ic.textContent="✅"; tit.textContent=LABELS[tipo]+" registrada";
+    let m="às "+hora;
+    if(resp && resp.nome_local) m+=" — "+resp.nome_local;
+    if(resp && resp.fora_do_raio) m+="\n⚠️ Localização fora da área cadastrada — sujeito a revisão.";
+    msg.textContent=m;
+  }else{
+    ic.textContent="📴"; tit.textContent=LABELS[tipo]+" salva";
+    msg.textContent="Sem conexão — o registro foi salvo e será enviado automaticamente quando a internet voltar.";
+  }
+  go("s-resultado");
+}
+async function voltarHome(){ tipoPendente=null; go("s-home"); await refreshHome(); }
+
+/* =====================================================================
+   SINCRONIZAÇÃO da fila (FIFO) — fallback ao abrir e a cada 60s
+   ===================================================================== */
+let sincronizando=false;
+async function sincronizarFila(){
+  if(sincronizando || !navigator.onLine) return;
+  sincronizando=true;
+  try{
+    const itens=(await filaAll()).sort((a,b)=>a.registrado_em<b.registrado_em?-1:1); // FIFO
+    for(const it of itens){
+      try{
+        const r=await fetch(EP.registrar,{ method:"POST",
+          headers:{"Content-Type":"application/json"}, body:JSON.stringify(it) });
+        if(r.ok){ await filaDel(it.local_id); }
+        else break; // erro do servidor: tenta na próxima rodada
+      }catch(e){ break; } // sem rede: para e tenta depois
+    }
+  } finally { sincronizando=false; await atualizarPendentes(); }
+}
+function registrarSync(){
+  if("serviceWorker" in navigator && "SyncManager" in window){
+    navigator.serviceWorker.ready.then(reg=>reg.sync.register("sync-pontos").catch(()=>{})).catch(()=>{});
+  }
+}
+
+/* =====================================================================
+   BOOT
+   ===================================================================== */
+async function boot(){
+  // Service worker (cache + fila offline). Falha silenciosa se sw.js ainda não existir.
+  if("serviceWorker" in navigator){
+    try{ await navigator.serviceWorker.register("sw.js"); }catch(e){/* sw.js vem na etapa 2 */}
+  }
+  window.addEventListener("online", ()=>{ atualizarRede(); sincronizarFila(); });
+  window.addEventListener("offline", atualizarRede);
+  // fallback de sync periódico com app aberto
+  setInterval(()=>{ if(navigator.onLine) sincronizarFila(); }, SYNC_INTERVAL_MS);
+
+  const token=new URLSearchParams(location.search).get("t");
+  const sessao=getSessao();
+
+  if(sessao){                       // já vinculado → uso diário
+    go("s-home"); await refreshHome(); sincronizarFila();
+  } else if(token){                 // primeiro acesso
+    vincular(token);
+  } else {                          // sem token e sem sessão
+    go("s-novinculo");
+  }
+}
+document.addEventListener("DOMContentLoaded", boot);
+</script>
+</body>
+</html>
