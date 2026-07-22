@@ -99,8 +99,28 @@
   <section id="s-novinculo" class="screen center">
     <div class="logo">🕒</div>
     <h1>Ponto Braskem</h1>
-    <p class="big">Abra pelo <b>link pessoal</b> que você recebeu no WhatsApp para ativar o ponto neste aparelho.</p>
-    <div class="muted-box">O link é individual e só funciona uma vez. Se você já ativou, use o ícone do app na tela inicial.</div>
+    <p class="big">Ative o ponto neste aparelho com o <b>seu código pessoal</b> (recebido no WhatsApp).</p>
+    <div style="width:100%">
+      <input id="codigo-input" class="btn" style="text-align:center" autocapitalize="characters"
+             autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Cole o link ou digite o código">
+      <button class="btn primary" style="margin-top:10px" onclick="ativarComCodigo()">Ativar</button>
+    </div>
+    <div class="muted-box">O código é individual e só funciona uma vez. Se já ativou, use o ícone do app na tela inicial.</div>
+  </section>
+
+  <!-- INSTALAR PRIMEIRO (iPhone: vínculo tem que ser dentro do app instalado) -->
+  <section id="s-instalar" class="screen center">
+    <div class="logo">📲</div>
+    <h1>Falta 1 passo</h1>
+    <p class="big">No iPhone, <b>instale o app primeiro</b> e ative por dentro dele:</p>
+    <div class="a2hs" style="text-align:left">
+      1. Toque em <b>Compartilhar</b> (⬆️) na barra do Safari<br>
+      2. <b>Adicionar à Tela de Início</b><br>
+      3. Abra o app pelo <b>ícone</b> criado<br>
+      4. Toque em <b>Ativar</b> e cole o código abaixo
+    </div>
+    <div class="muted-box">Seu código: <b id="cod-mostrar" style="font-size:22px;letter-spacing:2px"></b></div>
+    <button class="btn primary" onclick="copiarCodigo()">📋 Copiar código</button>
   </section>
 
   <!-- VINCULANDO -->
@@ -212,6 +232,30 @@ const LS_SESSAO = "ponto_sessao";       // {profissional_id, nome, session_key}
 let stream = null;                      // MediaStream ativo
 let tipoPendente = null;
 let enviando = false;
+let codigoPendente = "";                // token quando o iPhone precisa instalar antes de ativar
+
+// iOS guarda armazenamento SEPARADO entre Safari e app instalado (tela inicial).
+// Por isso, no iPhone o vínculo tem que acontecer DENTRO do app standalone.
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const IS_STANDALONE = window.navigator.standalone === true ||
+  window.matchMedia('(display-mode: standalone)').matches;
+
+// Aceita tanto o link completo (…?t=TOKEN) quanto o código digitado.
+function extrairToken(raw){
+  const m = (raw || '').match(/[?&]t=([^&\s]+)/);
+  return m ? decodeURIComponent(m[1]) : (raw || '').trim();
+}
+function ativarComCodigo(){
+  const token = extrairToken(document.getElementById('codigo-input').value);
+  if(!token){ toast('Cole o link ou digite o código'); return; }
+  vincular(token);
+}
+function copiarCodigo(){
+  if(navigator.clipboard) navigator.clipboard.writeText(codigoPendente)
+    .then(()=>toast('Código copiado')).catch(()=>toast('Copie manualmente: '+codigoPendente));
+  else toast('Copie manualmente: '+codigoPendente);
+}
 
 function getDeviceId(){
   let id = localStorage.getItem(LS_DEVICE);
@@ -544,11 +588,15 @@ async function boot(){
   const token=new URLSearchParams(location.search).get("t");
   const sessao=getSessao();
 
-  if(sessao){                       // já vinculado → uso diário
+  if(sessao){                                   // já vinculado → uso diário
     go("s-home"); await refreshHome(); sincronizarFila();
-  } else if(token){                 // primeiro acesso
+  } else if(token && IS_IOS && !IS_STANDALONE){ // iPhone no Safari: NÃO queima o token aqui
+    codigoPendente = token;                     // (o app instalado tem outro armazenamento)
+    document.getElementById("cod-mostrar").textContent = token;
+    go("s-instalar");
+  } else if(token){                             // Android, ou já dentro do app instalado
     vincular(token);
-  } else {                          // sem token e sem sessão
+  } else {                                      // sem token: ativar pelo código (dentro do app)
     go("s-novinculo");
   }
 }
