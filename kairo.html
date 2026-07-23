@@ -10,9 +10,8 @@
 <title>Kairo</title>
 <style>
   :root{
-    --teal:#0B2A33; --teal-2:#0F3540; --orange:#E1592A; --navy:#1F2A3A;
-    --body:#EDEEF0; --card:#FFFFFF; --ink:#25303F; --muted:#7A828E;
-    --green:#2E9E6B; --amber:#E7A21F; --blue:#2E7CB6; --red:#D5483B;
+    --teal:#0B2A33; --orange:#E1592A; --navy:#1F2A3A; --body:#EDEEF0; --card:#FFFFFF;
+    --ink:#25303F; --muted:#7A828E; --green:#2E9E6B; --amber:#E7A21F; --blue:#2E7CB6; --red:#D5483B;
     --bg-bg:#DDF1E6; --br-bg:#F7D9D5;
   }
   *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; padding:0}
@@ -23,63 +22,42 @@
   #app{ max-width:520px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column }
   .screen{ flex:1; display:none; flex-direction:column; min-height:100dvh }
   .screen.active{ display:flex }
-  .center{ align-items:center; justify-content:center; text-align:center; padding:32px 24px; gap:16px; background:var(--body); }
-
-  h1{ font-size:25px; font-weight:700; color:var(--ink) }
-  h2{ font-size:22px; font-weight:700; color:var(--ink) }
-  .center p{ font-size:16px; color:var(--muted); line-height:1.5; max-width:340px }
-  .center .big{ font-size:17px; color:var(--ink) }
+  .center{ align-items:center; justify-content:center; text-align:center; padding:32px 24px; gap:16px; background:var(--body) }
+  h1{ font-size:25px; font-weight:700; color:var(--ink) } h2{ font-size:22px; font-weight:700; color:var(--ink) }
+  .center p{ font-size:16px; color:var(--muted); line-height:1.5; max-width:340px } .center .big{ font-size:17px; color:var(--ink) }
   .logo{ width:76px; height:76px; border-radius:22px; background:var(--teal); display:flex; align-items:center; justify-content:center }
   .logo svg{ width:40px; height:40px; stroke:var(--orange); fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round }
   .result-ic{ width:84px;height:84px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:44px }
   .ric-ok{ background:var(--bg-bg) } .ric-off{ background:#FDEBD8 } .ric-err{ background:var(--br-bg) }
-  .card-soft{ background:var(--card); border-radius:18px; padding:16px 18px; width:100%; max-width:360px; text-align:left; font-size:14.5px; color:var(--ink); line-height:1.55 }
-  .card-soft.dashed{ border:1.5px dashed #D6C7BC; background:#FBF4EF }
-  .code-big{ font-size:26px; font-weight:800; letter-spacing:3px; color:var(--teal); text-align:center; display:block; margin-top:6px }
   .field{ width:100%; max-width:360px }
   input.txt{ width:100%; height:54px; border:1.5px solid #D9DCE1; border-radius:14px; background:#fff; text-align:center; font-size:18px; font-weight:600; color:var(--ink); letter-spacing:1px }
   input.txt:focus{ outline:none; border-color:var(--orange) }
-  .btn{ appearance:none; border:1.5px solid #D9DCE1; border-radius:14px; padding:16px; font-size:17px; font-weight:700; width:100%; max-width:360px; cursor:pointer; background:#fff; color:var(--ink) }
-  .btn:active{ transform:scale(.98) }
-  .btn.primary{ background:var(--orange); color:#fff; border:none }
-  .btn.dark{ background:var(--navy); color:#fff; border:none }
+  .btn{ appearance:none; border:none; border-radius:14px; padding:17px; font-size:18px; font-weight:700; width:100%; max-width:360px; cursor:pointer; background:var(--orange); color:#fff }
+  .btn:active{ transform:scale(.98) } .btn:disabled{ filter:brightness(.8) }
+  .btn.ghost{ background:#fff; color:var(--ink); border:1.5px solid #D9DCE1 }
   .linkbtn{ background:none; border:none; color:var(--muted); font-size:15px; font-weight:600; cursor:pointer; text-decoration:underline }
   .spinner{ width:46px;height:46px;border:4px solid #DCDFE3;border-top-color:var(--orange);border-radius:50%;animation:spin 1s linear infinite }
   @keyframes spin{ to{ transform:rotate(360deg) } }
 
-  /* ---- telas de câmera/scanner (petróleo full) ---- */
-  .scan{ background:var(--teal); color:#fff; align-items:center; padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 24px); }
+  .scan{ background:var(--teal); color:#fff; align-items:center; padding:calc(env(safe-area-inset-top) + 20px) 20px calc(env(safe-area-inset-bottom) + 24px) }
   .scan-top{ text-align:center; width:100% }
-  .scan-clock{ font-size:34px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:.02em }
+  .scan-clock{ font-size:36px; font-weight:700; font-variant-numeric:tabular-nums }
   .scan-hello{ font-size:18px; font-weight:600; margin-top:2px; color:#CFE0E3 }
   .scan-mid{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; width:100% }
-  .camwrap{ width:82vw; max-width:320px; aspect-ratio:1/1; border-radius:26px; overflow:hidden; position:relative; background:#000 }
+  .camwrap{ width:80vw; max-width:300px; aspect-ratio:1/1; border-radius:26px; overflow:hidden; position:relative; background:#000; box-shadow:0 0 0 3px rgba(255,255,255,.15) }
   .camwrap video{ width:100%; height:100%; object-fit:cover; transform:scaleX(-1) }
-  .camwrap canvas{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none }
-  .ring{ position:absolute; inset:0; border-radius:26px; border:3px solid rgba(255,255,255,.22); pointer-events:none; transition:border-color .2s }
-  .ring.ok{ border-color:var(--green); border-width:4px }
-  .ring.bad{ border-color:var(--amber) }
-  .flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none }
-  .flash.go{ animation:flash .35s ease-out }
+  .flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none } .flash.go{ animation:flash .35s ease-out }
   @keyframes flash{ 0%{ opacity:.85 } 100%{ opacity:0 } }
-  .scan-status{ font-size:16px; color:#CFE0E3; text-align:center; min-height:22px }
-  .scan-type{ font-size:14px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--orange);
-              background:rgba(225,89,42,.14); padding:8px 18px; border-radius:20px }
+  .scan-type{ font-size:15px; font-weight:700; letter-spacing:.1em; text-transform:uppercase; color:var(--orange); background:rgba(225,89,42,.14); padding:9px 20px; border-radius:22px }
   .scan-bottom{ width:100%; display:flex; flex-direction:column; align-items:center; gap:14px }
-  .cornerbtn{ position:absolute; top:calc(env(safe-area-inset-top) + 16px); background:rgba(255,255,255,.14); color:#fff;
-              border:none; border-radius:14px; padding:8px 12px; font-size:13px; font-weight:600; cursor:pointer }
-  .cornerbtn.left{ left:16px } .cornerbtn.right{ right:16px }
-  .prog{ font-size:15px; font-weight:700; color:var(--orange) }
+  .cornerbtn{ position:absolute; top:calc(env(safe-area-inset-top) + 16px); left:16px; background:rgba(255,255,255,.14); color:#fff; border:none; border-radius:14px; padding:8px 12px; font-size:13px; font-weight:600; cursor:pointer }
 
-  /* botões manuais (fallback) */
   .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; width:100%; max-width:360px }
-  .btn-ponto{ border:none; border-radius:16px; padding:20px 14px; color:#fff; font-weight:700; font-size:16px;
-    display:flex; align-items:center; gap:10px; cursor:pointer }
+  .btn-ponto{ border:none; border-radius:16px; padding:20px 14px; color:#fff; font-weight:700; font-size:16px; display:flex; align-items:center; gap:10px; cursor:pointer }
   .btn-ponto svg{ width:22px;height:22px;stroke:#fff;fill:none;stroke-width:2;stroke-linecap:round;stroke-linejoin:round }
   .b-entrada{ background:var(--green) } .b-pausa{ background:var(--amber) } .b-retorno{ background:var(--blue) } .b-saida{ background:var(--red) }
 
-  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--navy); color:#fff;
-    padding:12px 18px; border-radius:14px; font-size:15px; max-width:90%; text-align:center; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50 }
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--navy); color:#fff; padding:12px 18px; border-radius:14px; font-size:15px; max-width:90%; text-align:center; opacity:0; pointer-events:none; transition:opacity .25s; z-index:50 }
   .toast.show{ opacity:1 }
   canvas{ display:none }
 </style>
@@ -87,161 +65,86 @@
 <body>
 <div id="app">
 
-  <!-- CARREGANDO -->
-  <section id="s-loading" class="screen center active">
-    <div class="spinner"></div>
-    <p id="loading-msg">Carregando…</p>
-  </section>
+  <section id="s-loading" class="screen center active"><div class="spinner"></div><p>Carregando…</p></section>
 
-  <!-- SEM VÍNCULO -->
   <section id="s-novinculo" class="screen center">
     <div class="logo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
     <h1>Kairo</h1>
     <p class="big">Ative o ponto neste aparelho com o <b>seu código pessoal</b> (recebido no WhatsApp).</p>
     <div class="field"><input id="codigo-input" class="txt" autocapitalize="characters" autocomplete="off" autocorrect="off" spellcheck="false" placeholder="Cole o link ou digite o código"></div>
-    <button class="btn primary" onclick="ativarComCodigo()">Ativar</button>
+    <button class="btn" onclick="ativarComCodigo()">Ativar</button>
     <p style="font-size:13px">O código é individual e só funciona uma vez. Se já ativou, use o ícone do app na tela inicial.</p>
   </section>
 
-  <!-- INSTALAR PRIMEIRO (iPhone) -->
-  <section id="s-instalar" class="screen center">
-    <div class="logo"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
-    <h1>Falta 1 passo</h1>
-    <p class="big">No iPhone, <b>instale o app primeiro</b> e ative por dentro dele:</p>
-    <div class="card-soft">1. Toque em <b>Compartilhar</b> (⬆️) no Safari<br>2. <b>Adicionar à Tela de Início</b><br>3. Abra pelo <b>ícone</b> Kairo<br>4. Toque em <b>Ativar</b> e cole o código</div>
-    <div class="card-soft dashed">Seu código:<b id="cod-mostrar" class="code-big"></b></div>
-    <button class="btn primary" onclick="copiarCodigo()">Copiar código</button>
-  </section>
-
-  <!-- VINCULANDO -->
   <section id="s-vinculando" class="screen center"><div class="spinner"></div><p>Ativando seu ponto…</p></section>
 
-  <!-- ERRO DE VÍNCULO -->
   <section id="s-vinculo-erro" class="screen center">
     <div class="result-ic ric-err">🔒</div>
     <h2 id="vinculo-erro-titulo">Link já utilizado</h2>
     <p id="vinculo-erro-msg">Este link já foi ativado em outro aparelho. Fale com o administrador.</p>
   </section>
 
-  <!-- VÍNCULO OK -->
   <section id="s-vinculo-ok" class="screen center">
     <div class="result-ic ric-ok">✅</div>
     <h2>Tudo certo, <span id="ok-nome">!</span></h2>
     <p>Seu ponto está ativo neste aparelho.</p>
-    <button class="btn primary" onclick="irConsentimento()">Continuar</button>
+    <button class="btn" onclick="irScanner()">Começar</button>
   </section>
 
-  <!-- CONSENTIMENTO BIOMETRIA (LGPD) -->
-  <section id="s-consent" class="screen center">
-    <div class="logo"><svg viewBox="0 0 24 24"><circle cx="12" cy="8" r="4"/><path d="M4 21c0-4 4-6 8-6s8 2 8 6"/></svg></div>
-    <h1>Reconhecimento facial</h1>
-    <p class="big">O Kairo usa seu rosto para <b>confirmar sua identidade</b> ao bater o ponto — assim ninguém bate por você.</p>
-    <div class="card-soft">Guardamos apenas uma <b>assinatura matemática</b> do seu rosto (não a foto), <b>neste aparelho</b>. Você pode recusar e bater o ponto manualmente.</div>
-    <button class="btn primary" onclick="aceitarBiometria()">Concordo e cadastrar meu rosto</button>
-    <button class="linkbtn" onclick="recusarBiometria()">Agora não — usar modo manual</button>
-  </section>
-
-  <!-- CADASTRO DE ROSTO -->
-  <section id="s-cadastro" class="screen scan">
-    <div class="scan-top"><h2 style="color:#fff">Cadastro do rosto</h2>
-      <div class="scan-hello">Tire 3 fotos do seu rosto</div></div>
-    <div class="scan-mid">
-      <div class="camwrap"><video id="cad-video" playsinline autoplay muted></video><canvas id="cad-canvas"></canvas><div class="ring" id="cad-ring"></div><div class="flash" id="cad-flash"></div></div>
-      <div class="prog" id="cad-prog">0 de 3</div>
-      <div class="scan-status" id="cad-status">Olhe para a câmera</div>
-    </div>
-    <div class="scan-bottom">
-      <button class="btn primary" id="cad-btn" onclick="tirarFotoCadastro()">Tirar foto (1 de 3)</button>
-      <button class="linkbtn" style="color:#CFE0E3" onclick="pularFace()">Pular (usar manual)</button>
-    </div>
-  </section>
-
-  <!-- SCANNER (uso diário) -->
+  <!-- BATER PONTO -->
   <section id="s-scan" class="screen scan">
-    <button class="cornerbtn left" onclick="irRegistros()">Registros</button>
-    <button class="cornerbtn right" onclick="abrirManual()">Manual</button>
-    <div class="scan-top">
-      <div class="scan-clock" id="scan-clock">--:--</div>
-      <div class="scan-hello" id="scan-hello">Olá!</div>
-    </div>
+    <button class="cornerbtn" onclick="irRegistros()">Registros</button>
+    <div class="scan-top"><div class="scan-clock" id="scan-clock">--:--</div><div class="scan-hello" id="scan-hello">Olá!</div></div>
     <div class="scan-mid">
-      <div class="camwrap"><video id="scan-video" playsinline autoplay muted></video><canvas id="scan-canvas"></canvas><div class="ring" id="scan-ring"></div><div class="flash" id="scan-flash"></div></div>
+      <div class="camwrap"><video id="scan-video" playsinline autoplay muted></video><div class="flash" id="scan-flash"></div></div>
       <div class="scan-type" id="scan-type">—</div>
-      <div class="scan-status" id="scan-status">Olhe para a câmera</div>
     </div>
     <div class="scan-bottom">
-      <button class="btn primary" id="scan-btn" style="display:none" onclick="baterAgora()">Bater ponto</button>
-      <button class="btn primary" id="scan-cadastrar" style="display:none" onclick="iniciarCadastro()">Cadastrar meu rosto</button>
-      <button class="linkbtn" id="scan-recad" style="display:none;color:#CFE0E3" onclick="recadastrar()">Recadastrar rosto</button>
-    </div>
-  </section>
-
-  <!-- MANUAL: escolher tipo -->
-  <section id="s-manual" class="screen center">
-    <h2>Registrar manualmente</h2>
-    <p>Escolha o tipo de marcação:</p>
-    <div class="grid">
-      <button class="btn-ponto b-entrada" onclick="registrarManual('entrada')"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>Entrada</button>
-      <button class="btn-ponto b-pausa" onclick="registrarManual('pausa')"><svg viewBox="0 0 24 24"><path d="M4 8h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z"/><path d="M17 9h2a2 2 0 0 1 0 4h-2"/></svg>Almoço</button>
-      <button class="btn-ponto b-retorno" onclick="registrarManual('retorno')"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 17l5-5-5-5M19 12H7"/></svg>Retorno</button>
-      <button class="btn-ponto b-saida" onclick="registrarManual('saida')"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Saída</button>
-    </div>
-    <button class="linkbtn" onclick="irScanner()">Voltar</button>
-  </section>
-
-  <!-- MANUAL: câmera -->
-  <section id="s-manual-cam" class="screen scan">
-    <div class="scan-top"><h2 style="color:#fff" id="man-titulo">Registrar</h2></div>
-    <div class="scan-mid">
-      <div class="camwrap"><video id="man-video" playsinline autoplay muted></video><div class="ring"></div></div>
-      <div class="scan-status">Enquadre o rosto e toque em registrar</div>
-    </div>
-    <div class="scan-bottom">
-      <button class="btn primary" onclick="capturarManual()">Registrar ponto</button>
-      <button class="linkbtn" style="color:#CFE0E3" onclick="abrirManual()">Cancelar</button>
+      <button class="btn" id="scan-btn" onclick="baterAgora()">Bater ponto</button>
+      <button class="linkbtn" style="color:#CFE0E3" onclick="go('s-manual')">Trocar tipo</button>
     </div>
     <input id="cam-fallback" type="file" accept="image/*" capture="user" style="display:none" onchange="capturarInput(event)">
   </section>
 
-  <!-- ENVIANDO -->
+  <!-- TROCAR TIPO -->
+  <section id="s-manual" class="screen center">
+    <h2>Qual marcação?</h2>
+    <div class="grid">
+      <button class="btn-ponto b-entrada" onclick="escolherTipo('entrada')"><svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>Entrada</button>
+      <button class="btn-ponto b-pausa" onclick="escolherTipo('pausa')"><svg viewBox="0 0 24 24"><path d="M4 8h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z"/><path d="M17 9h2a2 2 0 0 1 0 4h-2"/></svg>Almoço</button>
+      <button class="btn-ponto b-retorno" onclick="escolherTipo('retorno')"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 17l5-5-5-5M19 12H7"/></svg>Retorno</button>
+      <button class="btn-ponto b-saida" onclick="escolherTipo('saida')"><svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>Saída</button>
+    </div>
+    <button class="linkbtn" onclick="irScanner()">Voltar</button>
+  </section>
+
   <section id="s-enviando" class="screen center"><div class="spinner"></div><p id="enviando-msg">Registrando…</p></section>
 
-  <!-- RESULTADO -->
   <section id="s-resultado" class="screen center">
     <div class="result-ic ric-ok" id="res-ic">✅</div>
     <h2 id="res-titulo"></h2>
     <p id="res-msg" style="white-space:pre-line"></p>
-    <button class="btn primary" onclick="voltarScanner()">OK</button>
+    <button class="btn" onclick="voltarScanner()">OK</button>
   </section>
 
 </div>
 
 <div id="toast" class="toast"></div>
-<div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#8a9;z-index:60;opacity:.7">Kairo v9</div>
+<div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#8a9;z-index:60;opacity:.7">Kairo v10</div>
 <canvas id="work-canvas"></canvas>
 
-<script src="face/face-api-vm.js"></script>
 <script>
-/* ===== CONFIG ===== */
-const WEBHOOK_BASE = "https://giantfalcon-n8n.cloudfy.live/webhook";
-const EP = { vincular:WEBHOOK_BASE+"/ponto-vincular", registrar:WEBHOOK_BASE+"/ponto-registrar", status:WEBHOOK_BASE+"/ponto-status" };
+const WEBHOOK_BASE="https://giantfalcon-n8n.cloudfy.live/webhook";
+const EP={ vincular:WEBHOOK_BASE+"/ponto-vincular", registrar:WEBHOOK_BASE+"/ponto-registrar", status:WEBHOOK_BASE+"/ponto-status" };
 const BAHIA_OFFSET="-03:00", FOTO_MAX_LADO=1280, FOTO_QUALIDADE=0.7, SYNC_INTERVAL_MS=60000;
-const FACE_THRESHOLD=0.5;   // distância euclidiana máx p/ considerar "mesma pessoa"
 const LABELS={entrada:"Entrada",saida:"Saída",pausa:"Almoço",retorno:"Retorno do almoço"};
 const CONF={entrada:"Entrada registrada",saida:"Saída registrada",pausa:"Almoço registrado",retorno:"Retorno do almoço registrado"};
 const SEQ={ "":"entrada", entrada:"pausa", pausa:"retorno", retorno:"saida", saida:"entrada" };
+const LS_DEVICE="ponto_device_id", LS_SESSAO="ponto_sessao";
+let stream=null, enviando=false, proximoTipo="entrada", tipoManual=false;
 
-const LS_DEVICE="ponto_device_id", LS_SESSAO="ponto_sessao", LS_FACE="ponto_face_desc", LS_CONSENT="ponto_consent";
-let stream=null, tipoPendente=null, enviando=false, codigoPendente="";
-let faceReady=false, scanning=false, proximoTipo="entrada", enrollDescs=[], cadDrawing=false;
-
-const IS_IOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
-const IS_STANDALONE=window.navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
-
-/* ===== helpers ===== */
 function go(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active")); document.getElementById(id).classList.add("active"); }
 let toastTimer; function toast(m){ const t=document.getElementById("toast"); t.textContent=m; t.classList.add("show"); clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),3000); }
-function sleep(ms){ return new Promise(r=>setTimeout(r,ms)); }
 function primeiroNome(n){ return (n||"").trim().split(/\s+/)[0]||n||""; }
 function getDeviceId(){ let id=localStorage.getItem(LS_DEVICE); if(!id){ id=uuid(); localStorage.setItem(LS_DEVICE,id);} return id; }
 function getSessao(){ try{ return JSON.parse(localStorage.getItem(LS_SESSAO)||"null"); }catch(e){ return null; } }
@@ -252,130 +155,35 @@ function isoBahia(d){ const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America
 function horaBahia(d){ return new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Bahia",hour:"2-digit",minute:"2-digit"}).format(d); }
 function diaBahia(d){ return isoBahia(d).slice(0,10); }
 function tickClock(){ const el=document.getElementById('scan-clock'); if(el) el.textContent=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Bahia',hour:'2-digit',minute:'2-digit'}).format(new Date()); }
+function flash(id){ const f=document.getElementById(id); if(!f) return; f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
 
-/* ===== IndexedDB fila offline ===== */
 const DB_NAME="ponto_db",DB_VER=1,STORE="fila_pontos";
 function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,DB_VER); r.onupgradeneeded=()=>{const db=r.result; if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:"local_id"});}; r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
 async function filaAdd(i){ const db=await idb(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,"readwrite"); tx.objectStore(STORE).put(i); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);}); }
 async function filaAll(){ const db=await idb(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,"readonly"); const rq=tx.objectStore(STORE).getAll(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>rej(rq.error);}); }
 async function filaDel(id){ const db=await idb(); return new Promise((res,rej)=>{const tx=db.transaction(STORE,"readwrite"); tx.objectStore(STORE).delete(id); tx.oncomplete=res; tx.onerror=()=>rej(tx.error);}); }
-async function filaCount(){ return (await filaAll()).length; }
 
-/* ===== VÍNCULO ===== */
 function extrairToken(raw){ const m=(raw||'').match(/[?&]t=([^&\s]+)/); return m?decodeURIComponent(m[1]):(raw||'').trim(); }
 function ativarComCodigo(){ const t=extrairToken(document.getElementById('codigo-input').value); if(!t){ toast('Cole o link ou digite o código'); return; } vincular(t); }
-function copiarCodigo(){ if(navigator.clipboard) navigator.clipboard.writeText(codigoPendente).then(()=>toast('Código copiado')).catch(()=>toast('Copie: '+codigoPendente)); else toast('Copie: '+codigoPendente); }
 async function vincular(token){
   go("s-vinculando");
   try{
     const r=await fetch(EP.vincular,{method:"POST",headers:{"Content-Type":"application/json"},body:JSON.stringify({token,device_id:getDeviceId()})});
     const d=await r.json();
     if(d&&d.ok){ setSessao({profissional_id:d.profissional_id,nome:d.nome,session_key:d.session_key});
-      document.getElementById("ok-nome").textContent=primeiroNome(d.nome)+"!";
-      history.replaceState({},"",location.pathname); go("s-vinculo-ok"); }
-    else mostrarErroVinculo(d&&d.motivo);
+      document.getElementById("ok-nome").textContent=primeiroNome(d.nome)+"!"; history.replaceState({},"",location.pathname); go("s-vinculo-ok"); }
+    else{ const t=document.getElementById("vinculo-erro-titulo"),m=document.getElementById("vinculo-erro-msg");
+      if(d&&d.motivo==="token_usado"){ t.textContent="Código já utilizado"; m.textContent="Este código já foi ativado. Peça um novo ao administrador."; }
+      else{ t.textContent="Código inválido"; m.textContent="Confira o código do WhatsApp ou fale com o administrador."; } go("s-vinculo-erro"); }
   }catch(e){ document.getElementById("vinculo-erro-titulo").textContent="Sem conexão";
-    document.getElementById("vinculo-erro-msg").textContent="Não foi possível ativar agora. Conecte-se à internet e abra o link novamente."; go("s-vinculo-erro"); }
+    document.getElementById("vinculo-erro-msg").textContent="Não foi possível ativar agora. Conecte-se à internet e tente de novo."; go("s-vinculo-erro"); }
 }
-function mostrarErroVinculo(motivo){ const t=document.getElementById("vinculo-erro-titulo"),m=document.getElementById("vinculo-erro-msg");
-  if(motivo==="token_usado"){ t.textContent="Link já utilizado"; m.textContent="Este link já foi ativado em outro aparelho. Fale com o administrador."; }
-  else { t.textContent="Link inválido"; m.textContent="Não reconhecemos este link. Confira a mensagem do WhatsApp ou fale com o administrador."; } go("s-vinculo-erro"); }
 
-/* ===== CÂMERA ===== */
-async function abrirCam(videoId){
-  try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:640},height:{ideal:640}},audio:false});
-    document.getElementById(videoId).srcObject=stream; return true;
-  }catch(e){ return false; }
-}
+async function abrirCam(id){ try{ stream=await navigator.mediaDevices.getUserMedia({video:{facingMode:"user",width:{ideal:720},height:{ideal:720}},audio:false}); document.getElementById(id).srcObject=stream; return true; }catch(e){ return false; } }
 function pararCam(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
-function comprimir(el){ const w0=el.videoWidth||el.naturalWidth,h0=el.videoHeight||el.naturalHeight;
-  const s=Math.min(1,FOTO_MAX_LADO/Math.max(w0,h0)); const w=Math.round(w0*s),h=Math.round(h0*s);
-  const c=document.getElementById("work-canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(el,0,0,w,h);
-  return c.toDataURL("image/jpeg",FOTO_QUALIDADE).split(",")[1]; }
-function pegarGPS(){ return new Promise(res=>{ if(!navigator.geolocation) return res(null);
-  navigator.geolocation.getCurrentPosition(p=>res({latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,ts:p.timestamp}),()=>res(null),{enableHighAccuracy:true,timeout:15000,maximumAge:0}); }); }
+function comprimir(el){ const w0=el.videoWidth||el.naturalWidth,h0=el.videoHeight||el.naturalHeight; const s=Math.min(1,FOTO_MAX_LADO/Math.max(w0,h0)); const w=Math.round(w0*s),h=Math.round(h0*s); const c=document.getElementById("work-canvas"); c.width=w; c.height=h; c.getContext("2d").drawImage(el,0,0,w,h); return c.toDataURL("image/jpeg",FOTO_QUALIDADE).split(",")[1]; }
+function pegarGPS(){ return new Promise(res=>{ if(!navigator.geolocation) return res(null); navigator.geolocation.getCurrentPosition(p=>res({latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,ts:p.timestamp}),()=>res(null),{enableHighAccuracy:true,timeout:15000,maximumAge:0}); }); }
 
-/* ===== FACE (face-api.js) ===== */
-let faceErro="";
-async function carregarModelos(){
-  if(faceReady) return true;
-  if(typeof faceapi==='undefined'){ faceErro="lib não carregou"; return false; }
-  try{
-    try{ await faceapi.tf.setBackend('webgl'); }catch(_){ try{ await faceapi.tf.setBackend('wasm'); }catch(__){} }
-    await faceapi.tf.ready();
-    const U="face/models";
-    await faceapi.nets.tinyFaceDetector.loadFromUri(U);
-    await faceapi.nets.faceLandmark68Net.loadFromUri(U);
-    await faceapi.nets.faceRecognitionNet.loadFromUri(U);
-    faceReady=true; return true;
-  }catch(e){ faceErro=(e&&e.message)||String(e); return false; }
-}
-function detOpts(){ return new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.4}); }
-function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
-function desenharBox(canvasId, video, box, cor){
-  const c=document.getElementById(canvasId); if(!c) return; const ctx=c.getContext('2d');
-  const w=video.clientWidth, h=video.clientHeight;
-  if(w&&c.width!==w) c.width=w; if(h&&c.height!==h) c.height=h;
-  ctx.clearRect(0,0,c.width,c.height);
-  if(!box || !video.videoWidth) return;
-  const sx=c.width/video.videoWidth, sy=c.height/video.videoHeight;
-  const bw=box.width*sx, bh=box.height*sy, y=box.y*sy, x=c.width - box.x*sx - bw;  // espelhado
-  ctx.strokeStyle=cor; ctx.lineWidth=3; ctx.lineJoin="round"; roundRect(ctx,x,y,bw,bh,16); ctx.stroke();
-}
-async function descritorDoRosto(video){
-  const d=await faceapi.detectSingleFace(video, detOpts()).withFaceLandmarks().withFaceDescriptor();
-  return d?Array.from(d.descriptor):null;
-}
-async function loopCadDraw(){
-  if(!cadDrawing || !document.getElementById("s-cadastro").classList.contains("active")) return;
-  const v=document.getElementById("cad-video");
-  try{ const det=await faceapi.detectSingleFace(v, detOpts()); desenharBox("cad-canvas", v, det?det.box:null, det?'#2E9E6B':'#E7A21F'); }catch(e){}
-  setTimeout(loopCadDraw, 200);
-}
-function getFaces(){ try{ return JSON.parse(localStorage.getItem(LS_FACE)||"null"); }catch(e){ return null; } }
-function temFace(){ const f=getFaces(); return f&&f.length>=1; }
-function distancia(a,b){ let s=0; for(let i=0;i<a.length;i++){ const d=a[i]-b[i]; s+=d*d; } return Math.sqrt(s); }
-function bateComCadastro(desc){ const f=getFaces()||[]; let min=99; for(const c of f){ const d=distancia(desc,c); if(d<min) min=d; } return {match:min<=FACE_THRESHOLD,dist:min}; }
-
-/* ===== CONSENTIMENTO + CADASTRO ===== */
-function irConsentimento(){
-  if(temFace()) return irScanner();
-  go("s-consent");   // sem rosto cadastrado → SEMPRE oferece o cadastro
-}
-function recusarBiometria(){ localStorage.setItem(LS_CONSENT,"0"); irScanner(); }
-async function aceitarBiometria(){ localStorage.setItem(LS_CONSENT,"1"); iniciarCadastro(); }
-function pularFace(){ cadDrawing=false; pararCam(); localStorage.setItem(LS_CONSENT,"0"); irScanner(); }
-
-async function iniciarCadastro(){
-  enrollDescs=[]; go("s-cadastro");
-  document.getElementById("cad-prog").textContent="0 de 3";
-  document.getElementById("cad-btn").textContent="Tirar foto (1 de 3)";
-  document.getElementById("cad-btn").disabled=true;
-  document.getElementById("cad-status").textContent="Preparando câmera…";
-  const ok=await carregarModelos();
-  if(!ok){ toast("Reconhecimento indisponível — modo manual"); pularFace(); return; }
-  if(!await abrirCam("cad-video")){ toast("Não consegui abrir a câmera"); pularFace(); return; }
-  document.getElementById("cad-btn").disabled=false;
-  document.getElementById("cad-status").textContent="Olhe para a câmera e tire a foto";
-  cadDrawing=true; loopCadDraw();
-}
-function flash(id){ const f=document.getElementById(id); if(!f) return; f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
-async function tirarFotoCadastro(){
-  const v=document.getElementById("cad-video"); if(!v.videoWidth){ toast("Aguarde a câmera abrir…"); return; }
-  const btn=document.getElementById("cad-btn"); btn.disabled=true;
-  document.getElementById("cad-status").textContent="Analisando…";
-  const desc=await descritorDoRosto(v);
-  if(!desc){ document.getElementById("cad-status").textContent="Não achei seu rosto — aproxime e tente de novo"; toast("Rosto não detectado"); btn.disabled=false; return; }
-  flash("cad-flash"); enrollDescs.push(desc);
-  const n=enrollDescs.length;
-  document.getElementById("cad-prog").textContent=n+" de 3";
-  if(n>=3){ finalizarCadastro(); return; }
-  btn.textContent="Tirar foto ("+(n+1)+" de 3)"; btn.disabled=false;
-  document.getElementById("cad-status").textContent="Boa! Agora a "+(n+1)+"ª foto";
-}
-function finalizarCadastro(){ cadDrawing=false; localStorage.setItem(LS_FACE,JSON.stringify(enrollDescs)); pararCam(); toast("Rosto cadastrado ✓"); irScanner(); }
-
-/* ===== SCANNER (uso diário) ===== */
 async function calcularProximoTipo(){
   let ultimo=""; const s=getSessao();
   if(navigator.onLine&&s){ try{ const r=await fetch(EP.status+"?session_key="+encodeURIComponent(s.session_key)); if(r.ok){ const d=await r.json(); if(d&&d.ultimo) ultimo=d.ultimo.tipo; } }catch(e){} }
@@ -385,78 +193,34 @@ async function calcularProximoTipo(){
   return SEQ[ultimo||""]||"entrada";
 }
 async function irScanner(){
-  scanning=false; pararCam(); go("s-scan");
+  pararCam(); go("s-scan");
   const s=getSessao();
   document.getElementById("scan-hello").textContent="Olá, "+primeiroNome(s?s.nome:"")+"!";
   tickClock();
-  const ring=document.getElementById("scan-ring"); ring.className="ring";
-  const cadBtn=document.getElementById("scan-cadastrar"), btn=document.getElementById("scan-btn"), recad=document.getElementById("scan-recad");
-  cadBtn.style.display="none"; btn.style.display="none"; recad.style.display="none";
-  proximoTipo=await calcularProximoTipo();
+  if(!tipoManual){ proximoTipo=await calcularProximoTipo(); }
+  tipoManual=false;
   document.getElementById("scan-type").textContent="Vai registrar: "+LABELS[proximoTipo].toUpperCase();
-  if(!temFace()){
-    document.getElementById("scan-type").textContent="";
-    document.getElementById("scan-status").textContent="Cadastre seu rosto para começar";
-    cadBtn.style.display="block"; return;
-  }
-  recad.style.display="block"; btn.style.display="block"; btn.disabled=true; btn.textContent="Preparando câmera…";
-  document.getElementById("scan-status").textContent="Preparando…";
-  const okModels=await carregarModelos();
-  if(!await abrirCam("scan-video")){ document.getElementById("scan-status").textContent="Câmera indisponível — use Manual"; btn.style.display="none"; return; }
+  const btn=document.getElementById("scan-btn"); btn.disabled=true; btn.textContent="Abrindo câmera…";
+  const ok=await abrirCam("scan-video");
   btn.disabled=false; btn.textContent="Bater ponto";
-  if(okModels){ document.getElementById("scan-status").textContent="Olhe para a câmera — reconhece sozinho, ou toque em Bater ponto"; scanning=true; loopScan(); }
-  else { document.getElementById("scan-status").textContent="Reconhecimento indisponível aqui — toque em Bater ponto"; }
+  if(!ok){ toast("Toque em Bater ponto para abrir a câmera"); }
 }
-async function baterAgora(){
-  const v=document.getElementById("scan-video"); if(!v.videoWidth){ toast("Aguarde a câmera abrir…"); return; }
-  scanning=false; const btn=document.getElementById("scan-btn"); btn.disabled=true; btn.textContent="Registrando…";
-  const agora=new Date(); const foto=comprimir(v); const gps=await pegarGPS(); pararCam();
-  await enviarRegistro({tipo:proximoTipo,agora,foto,gps});
-}
-function recadastrar(){ scanning=false; pararCam(); localStorage.removeItem(LS_FACE); iniciarCadastro(); }
-async function loopScan(){
-  if(!scanning || !document.getElementById("s-scan").classList.contains("active")) return;
-  const v=document.getElementById("scan-video");
-  const st=document.getElementById("scan-status"), ring=document.getElementById("scan-ring");
-  try{
-    const r=await faceapi.detectSingleFace(v, detOpts()).withFaceLandmarks().withFaceDescriptor();
-    if(r){
-      const m=bateComCadastro(Array.from(r.descriptor));
-      desenharBox("scan-canvas", v, r.detection.box, m.match?'#2E9E6B':'#E7A21F');
-      if(m.match){ scanning=false; ring.className="ring ok"; return reconhecido(); }
-      ring.className="ring bad"; st.textContent="Rosto detectado — confirmando identidade…";
-    } else { desenharBox("scan-canvas", v, null); ring.className="ring"; st.textContent="Procurando seu rosto…"; }
-  }catch(e){ scanning=false; st.textContent="Reconhecimento travou neste aparelho — toque em Bater ponto"; return; }
-  setTimeout(loopScan,300);
-}
-async function reconhecido(){
-  const ring=document.getElementById("scan-ring"); ring.className="ring ok"; flash("scan-flash");
-  document.getElementById("scan-status").textContent="Reconhecido! Registrando "+LABELS[proximoTipo].toLowerCase()+"…";
-  const v=document.getElementById("scan-video");
-  const agora=new Date(); const foto=comprimir(v); const gps=await pegarGPS(); pararCam();
-  await enviarRegistro({tipo:proximoTipo,agora,foto,gps});
-}
+function escolherTipo(tipo){ proximoTipo=tipo; tipoManual=true; irScanner(); }
 function irRegistros(){ toast('Meus registros — em breve'); }
 
-/* ===== MANUAL (fallback) ===== */
-function abrirManual(){ scanning=false; pararCam(); go("s-manual"); }
-async function registrarManual(tipo){
-  tipoPendente=tipo; go("s-manual-cam");
-  document.getElementById("man-titulo").textContent="Registrar "+LABELS[tipo];
-  if(!await abrirCam("man-video")){ document.getElementById("cam-fallback").click(); }
-}
-async function capturarManual(){
-  const v=document.getElementById("man-video");
-  if(!v.videoWidth){ toast("Aguarde a câmera abrir…"); return; }
+async function baterAgora(){
+  if(enviando) return;
+  const v=document.getElementById("scan-video");
+  if(!v.videoWidth){ document.getElementById("cam-fallback").click(); return; }
+  const btn=document.getElementById("scan-btn"); btn.disabled=true; btn.textContent="Registrando…"; flash("scan-flash");
   const agora=new Date(); const foto=comprimir(v); const gps=await pegarGPS(); pararCam();
-  await enviarRegistro({tipo:tipoPendente,agora,foto,gps});
+  await enviarRegistro({tipo:proximoTipo,agora,foto,gps});
 }
-async function capturarInput(ev){ const file=ev.target.files&&ev.target.files[0]; if(!file){ abrirManual(); return; }
+async function capturarInput(ev){ const file=ev.target.files&&ev.target.files[0]; if(!file) return;
   const agora=new Date(); const img=new Image(); const gpsP=pegarGPS();
-  img.onload=async()=>{ const foto=comprimir(img); const gps=await gpsP; await enviarRegistro({tipo:tipoPendente,agora,foto,gps}); URL.revokeObjectURL(img.src); };
+  img.onload=async()=>{ const foto=comprimir(img); const gps=await gpsP; await enviarRegistro({tipo:proximoTipo,agora,foto,gps}); URL.revokeObjectURL(img.src); };
   img.src=URL.createObjectURL(file); }
 
-/* ===== ENVIO / FILA ===== */
 function montarPayload({tipo,agora,foto,gps}){ const s=getSessao();
   return { session_key:s.session_key, profissional_id:s.profissional_id, device_id:getDeviceId(), tipo,
     registrado_em:isoBahia(agora), gps_timestamp:gps?isoBahia(new Date(gps.ts)):null,
@@ -479,9 +243,8 @@ function mostrarResultado(estado,tipo,resp){
   }else{ ic.className="result-ic ric-off"; ic.textContent="📴"; tit.textContent="Registro salvo"; msg.textContent="Sem conexão — o registro foi salvo e será enviado automaticamente quando a internet voltar."; }
   go("s-resultado");
 }
-async function voltarScanner(){ tipoPendente=null; irScanner(); }
+async function voltarScanner(){ irScanner(); }
 
-/* ===== SYNC ===== */
 let sincronizando=false;
 async function sincronizarFila(){ if(sincronizando||!navigator.onLine) return; sincronizando=true;
   try{ const itens=(await filaAll()).sort((a,b)=>a.registrado_em<b.registrado_em?-1:1);
@@ -489,17 +252,15 @@ async function sincronizarFila(){ if(sincronizando||!navigator.onLine) return; s
   } finally { sincronizando=false; } }
 function registrarSync(){ if("serviceWorker" in navigator && "SyncManager" in window) navigator.serviceWorker.ready.then(reg=>reg.sync.register("sync-pontos").catch(()=>{})).catch(()=>{}); }
 
-/* ===== BOOT ===== */
 async function boot(){
   if("serviceWorker" in navigator){ try{ await navigator.serviceWorker.register("sw.js"); }catch(e){} }
   window.addEventListener("online", sincronizarFila);
   setInterval(()=>{ if(navigator.onLine) sincronizarFila(); }, SYNC_INTERVAL_MS);
   setInterval(tickClock, 1000);
-
   const token=new URLSearchParams(location.search).get("t");
   const sessao=getSessao();
-  if(sessao){ sincronizarFila(); irConsentimento(); }
-  else if(token){ vincular(token); }   // ativa direto (sem etapa de "instalar primeiro")
+  if(sessao){ sincronizarFila(); irScanner(); }
+  else if(token){ vincular(token); }
   else go("s-novinculo");
 }
 document.addEventListener("DOMContentLoaded", boot);
