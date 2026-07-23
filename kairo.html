@@ -55,6 +55,7 @@
   .scan-mid{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; width:100% }
   .camwrap{ width:82vw; max-width:320px; aspect-ratio:1/1; border-radius:26px; overflow:hidden; position:relative; background:#000 }
   .camwrap video{ width:100%; height:100%; object-fit:cover; transform:scaleX(-1) }
+  .camwrap canvas{ position:absolute; inset:0; width:100%; height:100%; pointer-events:none }
   .ring{ position:absolute; inset:0; border-radius:26px; border:3px solid rgba(255,255,255,.22); pointer-events:none; transition:border-color .2s }
   .ring.ok{ border-color:var(--green); border-width:4px }
   .ring.bad{ border-color:var(--amber) }
@@ -145,7 +146,7 @@
     <div class="scan-top"><h2 style="color:#fff">Cadastro do rosto</h2>
       <div class="scan-hello">Tire 3 fotos do seu rosto</div></div>
     <div class="scan-mid">
-      <div class="camwrap"><video id="cad-video" playsinline autoplay muted></video><div class="ring" id="cad-ring"></div><div class="flash" id="cad-flash"></div></div>
+      <div class="camwrap"><video id="cad-video" playsinline autoplay muted></video><canvas id="cad-canvas"></canvas><div class="ring" id="cad-ring"></div><div class="flash" id="cad-flash"></div></div>
       <div class="prog" id="cad-prog">0 de 3</div>
       <div class="scan-status" id="cad-status">Olhe para a câmera</div>
     </div>
@@ -164,7 +165,7 @@
       <div class="scan-hello" id="scan-hello">Olá!</div>
     </div>
     <div class="scan-mid">
-      <div class="camwrap"><video id="scan-video" playsinline autoplay muted></video><div class="ring" id="scan-ring"></div><div class="flash" id="scan-flash"></div></div>
+      <div class="camwrap"><video id="scan-video" playsinline autoplay muted></video><canvas id="scan-canvas"></canvas><div class="ring" id="scan-ring"></div><div class="flash" id="scan-flash"></div></div>
       <div class="scan-type" id="scan-type">—</div>
       <div class="scan-status" id="scan-status">Olhe para a câmera</div>
     </div>
@@ -227,7 +228,7 @@ const SEQ={ "":"entrada", entrada:"pausa", pausa:"retorno", retorno:"saida", sai
 
 const LS_DEVICE="ponto_device_id", LS_SESSAO="ponto_sessao", LS_FACE="ponto_face_desc", LS_CONSENT="ponto_consent";
 let stream=null, tipoPendente=null, enviando=false, codigoPendente="";
-let faceReady=false, scanning=false, proximoTipo="entrada", enrollDescs=[], enrolling=false;
+let faceReady=false, scanning=false, proximoTipo="entrada", enrollDescs=[], cadDrawing=false;
 
 const IS_IOS=/iphone|ipad|ipod/i.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const IS_STANDALONE=window.navigator.standalone===true||window.matchMedia('(display-mode: standalone)').matches;
@@ -300,9 +301,27 @@ async function carregarModelos(){
     faceReady=true; return true;
   }catch(e){ return false; }
 }
+function detOpts(){ return new faceapi.TinyFaceDetectorOptions({inputSize:288,scoreThreshold:0.45}); }
+function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
+function desenharBox(canvasId, video, box, cor){
+  const c=document.getElementById(canvasId); if(!c) return; const ctx=c.getContext('2d');
+  const w=video.clientWidth, h=video.clientHeight;
+  if(w&&c.width!==w) c.width=w; if(h&&c.height!==h) c.height=h;
+  ctx.clearRect(0,0,c.width,c.height);
+  if(!box || !video.videoWidth) return;
+  const sx=c.width/video.videoWidth, sy=c.height/video.videoHeight;
+  const bw=box.width*sx, bh=box.height*sy, y=box.y*sy, x=c.width - box.x*sx - bw;  // espelhado
+  ctx.strokeStyle=cor; ctx.lineWidth=3; ctx.lineJoin="round"; roundRect(ctx,x,y,bw,bh,16); ctx.stroke();
+}
 async function descritorDoRosto(video){
-  const d=await faceapi.detectSingleFace(video,new faceapi.TinyFaceDetectorOptions({inputSize:320,scoreThreshold:0.5})).withFaceLandmarks().withFaceDescriptor();
+  const d=await faceapi.detectSingleFace(video, detOpts()).withFaceLandmarks().withFaceDescriptor();
   return d?Array.from(d.descriptor):null;
+}
+async function loopCadDraw(){
+  if(!cadDrawing || !document.getElementById("s-cadastro").classList.contains("active")) return;
+  const v=document.getElementById("cad-video");
+  try{ const det=await faceapi.detectSingleFace(v, detOpts()); desenharBox("cad-canvas", v, det?det.box:null, det?'#2E9E6B':'#E7A21F'); }catch(e){}
+  setTimeout(loopCadDraw, 200);
 }
 function getFaces(){ try{ return JSON.parse(localStorage.getItem(LS_FACE)||"null"); }catch(e){ return null; } }
 function temFace(){ const f=getFaces(); return f&&f.length>=1; }
@@ -316,7 +335,7 @@ function irConsentimento(){
 }
 function recusarBiometria(){ localStorage.setItem(LS_CONSENT,"0"); irScanner(); }
 async function aceitarBiometria(){ localStorage.setItem(LS_CONSENT,"1"); iniciarCadastro(); }
-function pularFace(){ pararCam(); enrolling=false; localStorage.setItem(LS_CONSENT,"0"); irScanner(); }
+function pularFace(){ cadDrawing=false; pararCam(); localStorage.setItem(LS_CONSENT,"0"); irScanner(); }
 
 async function iniciarCadastro(){
   enrollDescs=[]; go("s-cadastro");
@@ -329,6 +348,7 @@ async function iniciarCadastro(){
   if(!await abrirCam("cad-video")){ toast("Não consegui abrir a câmera"); pularFace(); return; }
   document.getElementById("cad-btn").disabled=false;
   document.getElementById("cad-status").textContent="Olhe para a câmera e tire a foto";
+  cadDrawing=true; loopCadDraw();
 }
 function flash(id){ const f=document.getElementById(id); if(!f) return; f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
 async function tirarFotoCadastro(){
@@ -344,7 +364,7 @@ async function tirarFotoCadastro(){
   btn.textContent="Tirar foto ("+(n+1)+" de 3)"; btn.disabled=false;
   document.getElementById("cad-status").textContent="Boa! Agora a "+(n+1)+"ª foto";
 }
-function finalizarCadastro(){ localStorage.setItem(LS_FACE,JSON.stringify(enrollDescs)); pararCam(); toast("Rosto cadastrado ✓"); irScanner(); }
+function finalizarCadastro(){ cadDrawing=false; localStorage.setItem(LS_FACE,JSON.stringify(enrollDescs)); pararCam(); toast("Rosto cadastrado ✓"); irScanner(); }
 
 /* ===== SCANNER (uso diário) ===== */
 async function calcularProximoTipo(){
@@ -380,13 +400,16 @@ async function loopScan(){
   if(!scanning || !document.getElementById("s-scan").classList.contains("active")) return;
   const v=document.getElementById("scan-video");
   const st=document.getElementById("scan-status"), ring=document.getElementById("scan-ring");
-  const desc=await descritorDoRosto(v);
-  if(desc){
-    const m=bateComCadastro(desc);
-    if(m.match){ scanning=false; return reconhecido(); }
-    ring.className="ring bad"; st.textContent="Aproxime um pouco o rosto…";
-  } else { ring.className="ring"; st.textContent="Olhe para a câmera…"; }
-  setTimeout(loopScan,400);
+  try{
+    const r=await faceapi.detectSingleFace(v, detOpts()).withFaceLandmarks().withFaceDescriptor();
+    if(r){
+      const m=bateComCadastro(Array.from(r.descriptor));
+      desenharBox("scan-canvas", v, r.detection.box, m.match?'#2E9E6B':'#E7A21F');
+      if(m.match){ scanning=false; ring.className="ring ok"; return reconhecido(); }
+      ring.className="ring bad"; st.textContent="Rosto detectado — confirmando identidade…";
+    } else { desenharBox("scan-canvas", v, null); ring.className="ring"; st.textContent="Procurando seu rosto…"; }
+  }catch(e){}
+  setTimeout(loopScan,300);
 }
 async function reconhecido(){
   const ring=document.getElementById("scan-ring"); ring.className="ring ok"; flash("scan-flash");
