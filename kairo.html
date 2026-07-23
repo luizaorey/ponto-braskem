@@ -169,7 +169,11 @@
       <div class="scan-type" id="scan-type">—</div>
       <div class="scan-status" id="scan-status">Olhe para a câmera</div>
     </div>
-    <div class="scan-bottom"><button class="btn primary" id="scan-cadastrar" style="display:none" onclick="iniciarCadastro()">Cadastrar meu rosto</button></div>
+    <div class="scan-bottom">
+      <button class="btn primary" id="scan-btn" style="display:none" onclick="baterAgora()">Bater ponto</button>
+      <button class="btn primary" id="scan-cadastrar" style="display:none" onclick="iniciarCadastro()">Cadastrar meu rosto</button>
+      <button class="linkbtn" id="scan-recad" style="display:none;color:#CFE0E3" onclick="recadastrar()">Recadastrar rosto</button>
+    </div>
   </section>
 
   <!-- MANUAL: escolher tipo -->
@@ -381,21 +385,30 @@ async function irScanner(){
   document.getElementById("scan-hello").textContent="Olá, "+primeiroNome(s?s.nome:"")+"!";
   tickClock();
   const ring=document.getElementById("scan-ring"); ring.className="ring";
-  const cadBtn=document.getElementById("scan-cadastrar"); cadBtn.style.display="none";
+  const cadBtn=document.getElementById("scan-cadastrar"), btn=document.getElementById("scan-btn"), recad=document.getElementById("scan-recad");
+  cadBtn.style.display="none"; btn.style.display="none"; recad.style.display="none";
   proximoTipo=await calcularProximoTipo();
   document.getElementById("scan-type").textContent="Vai registrar: "+LABELS[proximoTipo].toUpperCase();
   if(!temFace()){
     document.getElementById("scan-type").textContent="";
-    document.getElementById("scan-status").textContent="Cadastre seu rosto para bater o ponto automático";
+    document.getElementById("scan-status").textContent="Cadastre seu rosto para começar";
     cadBtn.style.display="block"; return;
   }
-  document.getElementById("scan-status").textContent="Preparando reconhecimento…";
-  const ok=await carregarModelos();
-  if(!ok){ document.getElementById("scan-status").textContent="Reconhecimento indisponível — use Manual"; return; }
-  if(!await abrirCam("scan-video")){ document.getElementById("scan-status").textContent="Câmera indisponível — use Manual"; return; }
-  document.getElementById("scan-status").textContent="Olhe para a câmera…";
-  scanning=true; loopScan();
+  recad.style.display="block"; btn.style.display="block"; btn.disabled=true; btn.textContent="Preparando câmera…";
+  document.getElementById("scan-status").textContent="Preparando…";
+  const okModels=await carregarModelos();
+  if(!await abrirCam("scan-video")){ document.getElementById("scan-status").textContent="Câmera indisponível — use Manual"; btn.style.display="none"; return; }
+  btn.disabled=false; btn.textContent="Bater ponto";
+  if(okModels){ document.getElementById("scan-status").textContent="Olhe para a câmera — reconhece sozinho, ou toque em Bater ponto"; scanning=true; loopScan(); }
+  else { document.getElementById("scan-status").textContent="Reconhecimento indisponível aqui — toque em Bater ponto"; }
 }
+async function baterAgora(){
+  const v=document.getElementById("scan-video"); if(!v.videoWidth){ toast("Aguarde a câmera abrir…"); return; }
+  scanning=false; const btn=document.getElementById("scan-btn"); btn.disabled=true; btn.textContent="Registrando…";
+  const agora=new Date(); const foto=comprimir(v); const gps=await pegarGPS(); pararCam();
+  await enviarRegistro({tipo:proximoTipo,agora,foto,gps});
+}
+function recadastrar(){ scanning=false; pararCam(); localStorage.removeItem(LS_FACE); iniciarCadastro(); }
 async function loopScan(){
   if(!scanning || !document.getElementById("s-scan").classList.contains("active")) return;
   const v=document.getElementById("scan-video");
@@ -408,7 +421,7 @@ async function loopScan(){
       if(m.match){ scanning=false; ring.className="ring ok"; return reconhecido(); }
       ring.className="ring bad"; st.textContent="Rosto detectado — confirmando identidade…";
     } else { desenharBox("scan-canvas", v, null); ring.className="ring"; st.textContent="Procurando seu rosto…"; }
-  }catch(e){}
+  }catch(e){ scanning=false; st.textContent="Reconhecimento travou neste aparelho — toque em Bater ponto"; return; }
   setTimeout(loopScan,300);
 }
 async function reconhecido(){
