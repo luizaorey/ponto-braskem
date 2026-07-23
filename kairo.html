@@ -1,0 +1,536 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, maximum-scale=1, user-scalable=no">
+<meta name="theme-color" content="#0B2A33">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<link rel="manifest" href="kairo-manifest.json">
+<title>Kairo</title>
+<style>
+  :root{
+    --teal:#0B2A33; --teal-2:#0F3540; --orange:#E1592A; --orange-d:#C64A20;
+    --navy:#1F2A3A; --body:#EDEEF0; --card:#FFFFFF; --ink:#25303F; --muted:#7A828E; --line:#ECEDEF;
+    --green:#2E9E6B; --amber:#E7A21F; --blue:#2E7CB6; --red:#D5483B;
+    --bb-bg:#D9EAF6; --bb-tx:#1C6396; --bg-bg:#DDF1E6; --bg-tx:#1E7A4E; --br-bg:#F7D9D5; --br-tx:#B23A2E;
+  }
+  *{box-sizing:border-box; -webkit-tap-highlight-color:transparent; margin:0; padding:0}
+  html,body{height:100%}
+  body{ background:var(--body); color:var(--ink);
+    font-family:-apple-system,"SF Pro Rounded","SF Pro Display",system-ui,"Segoe UI",Roboto,sans-serif;
+    -webkit-font-smoothing:antialiased; overscroll-behavior:none; }
+  #app{ max-width:520px; margin:0 auto; min-height:100dvh; display:flex; flex-direction:column }
+  .screen{ flex:1; display:none; flex-direction:column; min-height:100dvh }
+  .screen.active{ display:flex }
+
+  /* ---- header petróleo ---- */
+  .hdr{ background:var(--teal); color:#fff; padding:calc(env(safe-area-inset-top) + 14px) 20px 30px; }
+  .topbar{ display:flex; align-items:center; justify-content:space-between; height:32px; }
+  .topbar .name{ font-size:20px; font-weight:700; letter-spacing:.03em; }
+  .iconbtn{ background:none; border:none; padding:0; cursor:pointer; }
+  .ico{ width:24px; height:24px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .datep{ display:flex; align-items:center; gap:8px; margin-top:20px; font-size:13px; color:#BFD2D6; }
+  .datep svg{ width:16px; height:16px; stroke:#BFD2D6; fill:none; stroke-width:2; }
+  .hello{ font-size:27px; font-weight:700; margin-top:6px; }
+  .subtle{ color:#A9BEC2; font-size:13.5px; margin-top:3px; }
+  .badge{ background:var(--orange); color:#fff; font-weight:700; font-size:12.5px; border-radius:20px; padding:5px 12px; }
+  .badge.zero{ display:none }
+
+  /* ---- corpo ---- */
+  .body{ flex:1; background:var(--body); border-radius:26px 26px 0 0; margin-top:-18px;
+         padding:20px 16px calc(env(safe-area-inset-bottom) + 8px); position:relative; }
+  .card{ background:var(--card); border-radius:20px; padding:18px; }
+  .clock{ text-align:center; padding:20px 18px 22px; }
+  .clock .st{ display:inline-flex; align-items:center; gap:7px; font-size:12.5px; font-weight:600; letter-spacing:.1em;
+              text-transform:uppercase; color:var(--muted); }
+  .dot{ width:9px; height:9px; border-radius:50%; background:var(--muted); }
+  .dot.on{ background:var(--green) } .dot.off{ background:var(--red) }
+  .clock .big{ font-size:46px; font-weight:700; color:var(--ink); font-variant-numeric:tabular-nums; margin-top:6px; line-height:1; }
+  .clock .since{ font-size:13px; color:var(--muted); margin-top:8px; }
+
+  .sec{ font-size:13px; font-weight:700; color:var(--ink); margin:22px 4px 12px; }
+  .grid{ display:grid; grid-template-columns:1fr 1fr; gap:12px; }
+  .btn-ponto{ border:none; border-radius:18px; padding:16px 14px; color:#fff; font-weight:700; font-size:17px;
+    display:flex; flex-direction:column; gap:10px; min-height:98px; cursor:pointer; text-align:left;
+    transition:transform .06s ease, filter .2s; }
+  .btn-ponto:active{ transform:scale(.97) }
+  .btn-ponto:disabled{ filter:grayscale(.7) brightness(.78); cursor:not-allowed; }
+  .btn-ponto svg{ width:26px; height:26px; stroke:#fff; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .btn-ponto .ic{ font-size:0 } /* legacy emoji spans ocultados */
+  .b-entrada{ background:var(--green) } .b-pausa{ background:var(--amber) }
+  .b-retorno{ background:var(--blue) } .b-saida{ background:var(--red) }
+
+  .info-box{ background:#FBEFE9; color:#8A4526; border-radius:14px; padding:14px 16px; font-size:13.5px; margin-top:16px; line-height:1.45; }
+  .info-box b{ color:#6E3418 }
+  .pend-hint{ font-size:13px; color:var(--muted); margin-top:12px; padding:0 4px; }
+
+  .tabs{ display:flex; justify-content:space-around; align-items:center; background:var(--card);
+         border-radius:20px; padding:12px 8px; margin-top:22px; }
+  .tab{ display:flex; flex-direction:column; align-items:center; gap:4px; font-size:11px; font-weight:600;
+        color:#A6ACB5; background:none; border:none; cursor:pointer; }
+  .tab svg{ width:23px; height:23px; stroke:#A6ACB5; fill:none; stroke-width:2; stroke-linecap:round; stroke-linejoin:round; }
+  .tab.on{ color:var(--orange) } .tab.on svg{ stroke:var(--orange) }
+
+  /* ---- telas centrais (vínculo, resultado, loading) ---- */
+  .center{ align-items:center; justify-content:center; text-align:center; padding:32px 24px;
+           gap:16px; background:var(--body); }
+  .logo{ width:76px; height:76px; border-radius:22px; background:var(--teal); display:flex; align-items:center;
+         justify-content:center; }
+  .logo svg{ width:40px; height:40px; stroke:var(--orange); fill:none; stroke-width:2.2; stroke-linecap:round; stroke-linejoin:round; }
+  .center h1{ font-size:25px; font-weight:700; color:var(--ink); }
+  .center h2{ font-size:22px; font-weight:700; color:var(--ink); }
+  .center p{ font-size:16px; color:var(--muted); line-height:1.5; max-width:340px; }
+  .center .big{ font-size:17px; color:var(--ink) }
+  .result-ic{ width:84px; height:84px; border-radius:50%; display:flex; align-items:center; justify-content:center; font-size:44px; }
+  .ric-ok{ background:var(--bg-bg) } .ric-off{ background:#FDEBD8 } .ric-err{ background:var(--br-bg) }
+  .card-soft{ background:var(--card); border-radius:18px; padding:16px 18px; width:100%; max-width:360px; text-align:left;
+              font-size:14.5px; color:var(--ink); line-height:1.5; }
+  .card-soft.dashed{ border:1.5px dashed #D6C7BC; background:#FBF4EF }
+  .code-big{ font-size:26px; font-weight:800; letter-spacing:3px; color:var(--teal); text-align:center; display:block; margin-top:6px }
+
+  .field{ width:100%; max-width:360px; }
+  input.txt{ width:100%; height:54px; border:1.5px solid #D9DCE1; border-radius:14px; background:#fff; text-align:center;
+    font-size:18px; font-weight:600; color:var(--ink); letter-spacing:1px; }
+  input.txt:focus{ outline:none; border-color:var(--orange) }
+  .btn{ appearance:none; border:none; border-radius:14px; padding:16px; font-size:17px; font-weight:700; width:100%;
+    max-width:360px; cursor:pointer; background:#fff; color:var(--ink); border:1.5px solid #D9DCE1; }
+  .btn:active{ transform:scale(.98) }
+  .btn.primary{ background:var(--orange); color:#fff; border:none; }
+  .btn.ghost{ background:transparent; border:none; color:#fff; width:auto; padding:8px 12px; font-size:15px; }
+
+  .spinner{ width:46px; height:46px; border:4px solid #DCDFE3; border-top-color:var(--orange); border-radius:50%;
+    animation:spin 1s linear infinite; }
+  @keyframes spin{ to{ transform:rotate(360deg) } }
+
+  /* ---- câmera ---- */
+  #cam-video{ width:100%; border-radius:0; background:#000; aspect-ratio:3/4; object-fit:cover; }
+  .cam-body{ flex:1; background:var(--body); padding:18px 16px calc(env(safe-area-inset-bottom) + 12px);
+             display:flex; flex-direction:column; gap:14px; }
+
+  .toast{ position:fixed; left:50%; bottom:26px; transform:translateX(-50%); background:var(--navy); color:#fff;
+    padding:12px 18px; border-radius:14px; font-size:15px; max-width:90%; text-align:center; opacity:0;
+    pointer-events:none; transition:opacity .25s; z-index:50; }
+  .toast.show{ opacity:1 }
+  canvas{ display:none }
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- CARREGANDO -->
+  <section id="s-loading" class="screen center active">
+    <div class="spinner"></div>
+    <p id="loading-msg">Carregando…</p>
+  </section>
+
+  <!-- SEM VÍNCULO -->
+  <section id="s-novinculo" class="screen center">
+    <div class="logo"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3 2"/></svg></div>
+    <h1>Kairo</h1>
+    <p class="big">Ative o ponto neste aparelho com o <b>seu código pessoal</b> (recebido no WhatsApp).</p>
+    <div class="field">
+      <input id="codigo-input" class="txt" autocapitalize="characters" autocomplete="off" autocorrect="off"
+             spellcheck="false" placeholder="Cole o link ou digite o código">
+    </div>
+    <button class="btn primary" onclick="ativarComCodigo()">Ativar</button>
+    <p style="font-size:13px">O código é individual e só funciona uma vez. Se já ativou, use o ícone do app na tela inicial.</p>
+  </section>
+
+  <!-- INSTALAR PRIMEIRO (iPhone) -->
+  <section id="s-instalar" class="screen center">
+    <div class="logo"><svg viewBox="0 0 24 24"><rect x="6" y="2" width="12" height="20" rx="3"/><path d="M11 18h2"/></svg></div>
+    <h1>Falta 1 passo</h1>
+    <p class="big">No iPhone, <b>instale o app primeiro</b> e ative por dentro dele:</p>
+    <div class="card-soft">
+      1. Toque em <b>Compartilhar</b> (⬆️) na barra do Safari<br>
+      2. <b>Adicionar à Tela de Início</b><br>
+      3. Abra o app pelo <b>ícone</b> Kairo criado<br>
+      4. Toque em <b>Ativar</b> e cole o código abaixo
+    </div>
+    <div class="card-soft dashed">Seu código:<b id="cod-mostrar" class="code-big"></b></div>
+    <button class="btn primary" onclick="copiarCodigo()">Copiar código</button>
+  </section>
+
+  <!-- VINCULANDO -->
+  <section id="s-vinculando" class="screen center">
+    <div class="spinner"></div>
+    <p>Ativando seu ponto…</p>
+  </section>
+
+  <!-- ERRO DE VÍNCULO -->
+  <section id="s-vinculo-erro" class="screen center">
+    <div class="result-ic ric-err">🔒</div>
+    <h2 id="vinculo-erro-titulo">Link já utilizado</h2>
+    <p id="vinculo-erro-msg">Este link já foi ativado em outro aparelho. Fale com o administrador.</p>
+  </section>
+
+  <!-- VÍNCULO OK -->
+  <section id="s-vinculo-ok" class="screen center">
+    <div class="result-ic ric-ok">✅</div>
+    <h2>Tudo certo, <span id="ok-nome">!</span></h2>
+    <p>Seu ponto está ativo neste aparelho.</p>
+    <div class="card-soft" id="a2hs-box"><b>Adicione à tela inicial</b> para abrir rápido:<br><span id="a2hs-instr"></span></div>
+    <button class="btn primary" onclick="go('s-home'); refreshHome()">Começar</button>
+  </section>
+
+  <!-- HOME -->
+  <section id="s-home" class="screen">
+    <div class="hdr">
+      <div class="topbar">
+        <span style="width:24px"></span>
+        <div class="name">Kairo</div>
+        <span id="badge-pend" class="badge zero">0</span>
+      </div>
+      <div class="datep">
+        <svg viewBox="0 0 24 24"><rect x="3" y="4" width="18" height="17" rx="3"/><path d="M3 9h18M8 2v4M16 2v4"/></svg>
+        <span id="hoje-data">—</span>
+      </div>
+      <div class="hello" id="ola">Olá!</div>
+      <div class="subtle">Bem-vindo ao Kairo, seu sistema de ponto</div>
+    </div>
+
+    <div class="body">
+      <div class="card clock">
+        <div class="st"><span id="net-dot" class="dot"></span><span id="net-txt">—</span></div>
+        <div class="big" id="clock-now">--:--</div>
+        <div class="since" id="clock-sub">Toque num botão abaixo para registrar</div>
+      </div>
+
+      <div class="sec">Registrar ponto</div>
+      <div class="grid">
+        <button class="btn-ponto b-entrada" data-tipo="entrada" onclick="iniciarRegistro('entrada')">
+          <svg viewBox="0 0 24 24"><path d="M15 3h4a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2h-4"/><path d="M10 17l5-5-5-5M15 12H3"/></svg>
+          <span>Entrada</span><span class="ic">🟢</span></button>
+        <button class="btn-ponto b-pausa" data-tipo="pausa" onclick="iniciarRegistro('pausa')">
+          <svg viewBox="0 0 24 24"><path d="M4 8h13v4a5 5 0 0 1-5 5H9a5 5 0 0 1-5-5V8z"/><path d="M17 9h2a2 2 0 0 1 0 4h-2"/><path d="M8 2v2M12 2v2"/></svg>
+          <span>Almoço</span><span class="ic">🍽️</span></button>
+        <button class="btn-ponto b-retorno" data-tipo="retorno" onclick="iniciarRegistro('retorno')">
+          <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M14 17l5-5-5-5M19 12H7"/></svg>
+          <span>Retorno</span><span class="ic">▶️</span></button>
+        <button class="btn-ponto b-saida" data-tipo="saida" onclick="iniciarRegistro('saida')">
+          <svg viewBox="0 0 24 24"><path d="M9 3H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h4"/><path d="M16 17l5-5-5-5M21 12H9"/></svg>
+          <span>Saída</span><span class="ic">🔴</span></button>
+      </div>
+
+      <div id="ultimo-box" class="info-box" style="display:none"></div>
+      <p class="pend-hint" id="pend-hint" style="display:none"></p>
+
+      <div class="tabs">
+        <button class="tab on"><svg viewBox="0 0 24 24"><path d="M3 11l9-8 9 8"/><path d="M5 10v10h14V10"/></svg>Início</button>
+        <button class="tab" onclick="irRegistros()"><svg viewBox="0 0 24 24"><path d="M4 19V5M4 15l5-4 4 3 6-6"/></svg>Registros</button>
+        <button class="tab" onclick="irAjustes()"><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19 12a7 7 0 0 0-.1-1l2-1.5-2-3.5-2.3 1a7 7 0 0 0-1.7-1l-.3-2.5h-4l-.3 2.5a7 7 0 0 0-1.7 1l-2.3-1-2 3.5 2 1.5a7 7 0 0 0 0 2l-2 1.5 2 3.5 2.3-1a7 7 0 0 0 1.7 1l.3 2.5h4l.3-2.5a7 7 0 0 0 1.7-1l2.3 1 2-3.5-2-1.5a7 7 0 0 0 .1-1z"/></svg>Ajustes</button>
+      </div>
+    </div>
+  </section>
+
+  <!-- CÂMERA -->
+  <section id="s-camera" class="screen">
+    <div class="hdr" style="padding-bottom:16px">
+      <div class="topbar">
+        <span style="width:24px"></span>
+        <div class="name" id="cam-titulo">Registrar</div>
+        <button class="btn ghost" onclick="cancelarCamera()">Cancelar</button>
+      </div>
+    </div>
+    <video id="cam-video" playsinline autoplay muted></video>
+    <div class="cam-body">
+      <p class="pend-hint" id="cam-hint" style="text-align:center; margin:0">Enquadre o rosto e toque em registrar.</p>
+      <div style="flex:1"></div>
+      <button class="btn primary" id="cam-capturar" onclick="capturar()">Registrar ponto</button>
+    </div>
+    <input id="cam-fallback" type="file" accept="image/*" capture="user" style="display:none" onchange="capturarFallback(event)">
+  </section>
+
+  <!-- ENVIANDO -->
+  <section id="s-enviando" class="screen center">
+    <div class="spinner"></div>
+    <p id="enviando-msg">Registrando…</p>
+  </section>
+
+  <!-- RESULTADO -->
+  <section id="s-resultado" class="screen center">
+    <div class="result-ic ric-ok" id="res-ic">✅</div>
+    <h2 id="res-titulo"></h2>
+    <p id="res-msg" style="white-space:pre-line"></p>
+    <button class="btn primary" onclick="voltarHome()">OK</button>
+  </section>
+
+</div>
+
+<div id="toast" class="toast"></div>
+<canvas id="work-canvas"></canvas>
+
+<script>
+/* =====================================================================
+   CONFIG — n8n (Braskem). Fuso SEMPRE America/Bahia (UTC-3, sem DST).
+   ===================================================================== */
+const WEBHOOK_BASE = "https://giantfalcon-n8n.cloudfy.live/webhook";
+const EP = {
+  vincular:  WEBHOOK_BASE + "/ponto-vincular",
+  registrar: WEBHOOK_BASE + "/ponto-registrar",
+  status:    WEBHOOK_BASE + "/ponto-status",
+};
+const BAHIA_OFFSET = "-03:00";
+const FOTO_MAX_LADO = 1280;
+const FOTO_QUALIDADE = 0.7;
+const SYNC_INTERVAL_MS = 60000;
+const LABELS = {entrada:"Entrada", saida:"Saída", pausa:"Almoço", retorno:"Retorno do almoço"};
+const CONF = {entrada:"Entrada registrada", saida:"Saída registrada",
+              pausa:"Almoço registrado", retorno:"Retorno do almoço registrado"};
+
+const LS_DEVICE = "ponto_device_id";
+const LS_SESSAO = "ponto_sessao";
+let stream = null, tipoPendente = null, enviando = false, codigoPendente = "";
+
+const IS_IOS = /iphone|ipad|ipod/i.test(navigator.userAgent) ||
+  (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+const IS_STANDALONE = window.navigator.standalone === true ||
+  window.matchMedia('(display-mode: standalone)').matches;
+
+function extrairToken(raw){ const m=(raw||'').match(/[?&]t=([^&\s]+)/); return m?decodeURIComponent(m[1]):(raw||'').trim(); }
+function ativarComCodigo(){
+  const token=extrairToken(document.getElementById('codigo-input').value);
+  if(!token){ toast('Cole o link ou digite o código'); return; }
+  vincular(token);
+}
+function copiarCodigo(){
+  if(navigator.clipboard) navigator.clipboard.writeText(codigoPendente)
+    .then(()=>toast('Código copiado')).catch(()=>toast('Copie manualmente: '+codigoPendente));
+  else toast('Copie manualmente: '+codigoPendente);
+}
+function irRegistros(){ toast('Meus registros — em breve'); }
+function irAjustes(){ toast('Ajustes — em breve'); }
+
+function getDeviceId(){ let id=localStorage.getItem(LS_DEVICE); if(!id){ id=uuid(); localStorage.setItem(LS_DEVICE,id); } return id; }
+function getSessao(){ try{ return JSON.parse(localStorage.getItem(LS_SESSAO)||"null"); }catch(e){ return null; } }
+function setSessao(s){ localStorage.setItem(LS_SESSAO, JSON.stringify(s)); }
+function uuid(){
+  if(crypto.randomUUID) return crypto.randomUUID();
+  return "10000000-1000-4000-8000-100000000000".replace(/[018]/g,c=>
+    (c^crypto.getRandomValues(new Uint8Array(1))[0]&15>>c/4).toString(16));
+}
+
+function go(id){ document.querySelectorAll(".screen").forEach(s=>s.classList.remove("active"));
+  document.getElementById(id).classList.add("active"); }
+let toastTimer;
+function toast(msg){ const t=document.getElementById("toast"); t.textContent=msg; t.classList.add("show");
+  clearTimeout(toastTimer); toastTimer=setTimeout(()=>t.classList.remove("show"),3200); }
+
+function isoBahia(date){
+  const p=new Intl.DateTimeFormat("en-CA",{timeZone:"America/Bahia",year:"numeric",month:"2-digit",day:"2-digit",
+    hour:"2-digit",minute:"2-digit",second:"2-digit",hour12:false}).formatToParts(date).reduce((o,x)=>(o[x.type]=x.value,o),{});
+  const hh=p.hour==="24"?"00":p.hour;
+  return `${p.year}-${p.month}-${p.day}T${hh}:${p.minute}:${p.second}${BAHIA_OFFSET}`;
+}
+function horaBahia(date){ return new Intl.DateTimeFormat("pt-BR",{timeZone:"America/Bahia",hour:"2-digit",minute:"2-digit"}).format(date); }
+function diaBahia(date){ return isoBahia(date).slice(0,10); }
+function tickClock(){ const el=document.getElementById('clock-now'); if(el)
+  el.textContent=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Bahia',hour:'2-digit',minute:'2-digit',second:'2-digit'}).format(new Date()); }
+
+/* IndexedDB — fila offline */
+const DB_NAME="ponto_db", DB_VER=1, STORE="fila_pontos";
+function idb(){ return new Promise((res,rej)=>{ const r=indexedDB.open(DB_NAME,DB_VER);
+  r.onupgradeneeded=()=>{ const db=r.result; if(!db.objectStoreNames.contains(STORE)) db.createObjectStore(STORE,{keyPath:"local_id"}); };
+  r.onsuccess=()=>res(r.result); r.onerror=()=>rej(r.error); }); }
+async function filaAdd(item){ const db=await idb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,"readwrite");
+  tx.objectStore(STORE).put(item); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function filaAll(){ const db=await idb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,"readonly");
+  const rq=tx.objectStore(STORE).getAll(); rq.onsuccess=()=>res(rq.result||[]); rq.onerror=()=>rej(rq.error); }); }
+async function filaDel(local_id){ const db=await idb(); return new Promise((res,rej)=>{ const tx=db.transaction(STORE,"readwrite");
+  tx.objectStore(STORE).delete(local_id); tx.oncomplete=res; tx.onerror=()=>rej(tx.error); }); }
+async function filaCount(){ return (await filaAll()).length; }
+
+/* VÍNCULO */
+async function vincular(token){
+  go("s-vinculando");
+  try{
+    const r=await fetch(EP.vincular,{ method:"POST", headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({ token, device_id:getDeviceId() }) });
+    const data=await r.json();
+    if(data && data.ok){
+      setSessao({ profissional_id:data.profissional_id, nome:data.nome, session_key:data.session_key });
+      document.getElementById("ok-nome").textContent=primeiroNome(data.nome)+"!";
+      document.getElementById("a2hs-instr").innerHTML=instrucaoA2HS();
+      history.replaceState({}, "", location.pathname);
+      go("s-vinculo-ok");
+    } else mostrarErroVinculo(data && data.motivo);
+  }catch(e){
+    document.getElementById("vinculo-erro-titulo").textContent="Sem conexão";
+    document.getElementById("vinculo-erro-msg").textContent="Não foi possível ativar agora. Conecte-se à internet e abra o link novamente.";
+    go("s-vinculo-erro");
+  }
+}
+function mostrarErroVinculo(motivo){
+  const t=document.getElementById("vinculo-erro-titulo"), m=document.getElementById("vinculo-erro-msg");
+  if(motivo==="token_usado"){ t.textContent="Link já utilizado"; m.textContent="Este link já foi ativado em outro aparelho. Fale com o administrador."; }
+  else { t.textContent="Link inválido"; m.textContent="Não reconhecemos este link. Confira a mensagem do WhatsApp ou fale com o administrador."; }
+  go("s-vinculo-erro");
+}
+function primeiroNome(n){ return (n||"").trim().split(/\s+/)[0]||n||""; }
+function instrucaoA2HS(){ const ios=/iphone|ipad|ipod/i.test(navigator.userAgent);
+  return ios ? "no Safari, toque em <b>Compartilhar</b> (⬆️) → <b>Adicionar à Tela de Início</b>."
+             : "toque no menu <b>⋮</b> do navegador → <b>Adicionar à tela inicial</b>."; }
+
+/* HOME */
+async function refreshHome(){
+  const s=getSessao(); if(!s) return;
+  document.getElementById("ola").textContent="Olá, "+primeiroNome(s.nome)+"!";
+  const fmt=new Intl.DateTimeFormat('pt-BR',{timeZone:'America/Bahia',weekday:'long',day:'2-digit',month:'long',year:'numeric'});
+  const dstr=fmt.format(new Date());
+  document.getElementById("hoje-data").textContent=dstr.charAt(0).toUpperCase()+dstr.slice(1);
+  tickClock();
+  atualizarRede();
+  await atualizarPendentes();
+  await bloquearTipoRepetido();
+}
+function atualizarRede(){
+  const on=navigator.onLine;
+  document.getElementById("net-dot").className="dot "+(on?"on":"off");
+  document.getElementById("net-txt").textContent=on?"Conectado":"Sem conexão";
+}
+async function atualizarPendentes(){
+  const n=await filaCount(); const b=document.getElementById("badge-pend");
+  b.textContent=n+(n===1?" pendente":" pendentes"); b.classList.toggle("zero", n===0);
+  const hint=document.getElementById("pend-hint");
+  if(n>0){ hint.style.display="block"; hint.textContent="📴 "+n+" registro(s) aguardando envio — enviaremos automaticamente quando houver conexão."; }
+  else hint.style.display="none";
+}
+async function bloquearTipoRepetido(){
+  habilitarTodos();
+  let ultimoTipo=null, quando=null; const s=getSessao();
+  if(navigator.onLine && s){
+    try{ const r=await fetch(EP.status+"?session_key="+encodeURIComponent(s.session_key));
+      if(r.ok){ const d=await r.json(); if(d && d.ultimo){ ultimoTipo=d.ultimo.tipo; quando=d.ultimo.registrado_em; } } }catch(e){}
+  }
+  const hoje=diaBahia(new Date());
+  const locais=(await filaAll()).filter(x=>diaBahia(new Date(x.registrado_em))===hoje).sort((a,b)=>a.registrado_em<b.registrado_em?-1:1);
+  if(locais.length){ ultimoTipo=locais[locais.length-1].tipo; quando=locais[locais.length-1].registrado_em; }
+  const box=document.getElementById("ultimo-box"), sub=document.getElementById("clock-sub");
+  if(ultimoTipo){
+    const btn=document.querySelector(`.btn-ponto[data-tipo="${ultimoTipo}"]`); if(btn) btn.disabled=true;
+    box.style.display="block";
+    box.innerHTML="Último registro de hoje: <b>"+LABELS[ultimoTipo]+"</b>"+(quando?(" às "+horaBahia(new Date(quando))):"")+". Toque no próximo tipo.";
+    if(sub) sub.textContent="Último: "+LABELS[ultimoTipo]+(quando?(" às "+horaBahia(new Date(quando))):"");
+  } else { box.style.display="none"; if(sub) sub.textContent="Toque num botão abaixo para registrar"; }
+}
+function habilitarTodos(){ document.querySelectorAll(".btn-ponto").forEach(b=>b.disabled=false); }
+
+/* REGISTRO — câmera + GPS */
+async function iniciarRegistro(tipo){
+  tipoPendente=tipo;
+  document.getElementById("cam-titulo").textContent="Registrar "+LABELS[tipo];
+  go("s-camera");
+  try{
+    stream=await navigator.mediaDevices.getUserMedia({ video:{ facingMode:"user", width:{ideal:1280}, height:{ideal:1280} }, audio:false });
+    const v=document.getElementById("cam-video"); v.srcObject=stream; v.style.display="block";
+    document.getElementById("cam-capturar").style.display="block";
+  }catch(e){
+    document.getElementById("cam-video").style.display="none";
+    document.getElementById("cam-capturar").style.display="none";
+    document.getElementById("cam-hint").textContent="Abrindo a câmera…";
+    document.getElementById("cam-fallback").click();
+  }
+}
+function pararCamera(){ if(stream){ stream.getTracks().forEach(t=>t.stop()); stream=null; } }
+function cancelarCamera(){ pararCamera(); tipoPendente=null; voltarHome(); }
+function pegarGPS(){ return new Promise(res=>{
+  if(!navigator.geolocation) return res(null);
+  navigator.geolocation.getCurrentPosition(
+    p=>res({ latitude:p.coords.latitude, longitude:p.coords.longitude, accuracy:p.coords.accuracy, ts:p.timestamp }),
+    ()=>res(null), { enableHighAccuracy:true, timeout:15000, maximumAge:0 }); }); }
+function comprimir(sourceEl){
+  const w0=sourceEl.videoWidth||sourceEl.naturalWidth, h0=sourceEl.videoHeight||sourceEl.naturalHeight;
+  const escala=Math.min(1, FOTO_MAX_LADO/Math.max(w0,h0));
+  const w=Math.round(w0*escala), h=Math.round(h0*escala);
+  const c=document.getElementById("work-canvas"); c.width=w; c.height=h;
+  c.getContext("2d").drawImage(sourceEl,0,0,w,h);
+  return c.toDataURL("image/jpeg",FOTO_QUALIDADE).split(",")[1];
+}
+async function capturar(){
+  if(enviando) return;
+  const v=document.getElementById("cam-video");
+  if(!v.videoWidth){ toast("Aguarde a câmera abrir…"); return; }
+  const agora=new Date(); const foto=comprimir(v); const gps=await pegarGPS(); pararCamera();
+  await enviarRegistro({ tipo:tipoPendente, agora, foto, gps });
+}
+async function capturarFallback(ev){
+  const file=ev.target.files && ev.target.files[0]; if(!file){ voltarHome(); return; }
+  const agora=new Date(); const img=new Image(); const gpsP=pegarGPS();
+  img.onload=async()=>{ const foto=comprimir(img); const gps=await gpsP;
+    await enviarRegistro({ tipo:tipoPendente, agora, foto, gps }); URL.revokeObjectURL(img.src); };
+  img.src=URL.createObjectURL(file);
+}
+
+/* PAYLOAD + ENVIO / FILA */
+function montarPayload({tipo, agora, foto, gps}){
+  const s=getSessao();
+  return { session_key:s.session_key, profissional_id:s.profissional_id, device_id:getDeviceId(), tipo,
+    registrado_em:isoBahia(agora), gps_timestamp:gps?isoBahia(new Date(gps.ts)):null,
+    latitude:gps?gps.latitude:null, longitude:gps?gps.longitude:null, accuracy_metros:gps?gps.accuracy:null,
+    foto_base64:foto, local_id:uuid() };
+}
+async function enviarRegistro(dados){
+  enviando=true; go("s-enviando");
+  document.getElementById("enviando-msg").textContent="Registrando "+LABELS[dados.tipo].toLowerCase()+"…";
+  const payload=montarPayload(dados);
+  if(!navigator.onLine){ await guardarOffline(payload); enviando=false; return; }
+  try{
+    const r=await fetch(EP.registrar,{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(payload) });
+    if(!r.ok) throw new Error("HTTP "+r.status);
+    const d=await r.json(); enviando=false; mostrarResultado("ok", payload.tipo, d);
+  }catch(e){ await guardarOffline(payload); enviando=false; }
+}
+async function guardarOffline(payload){ payload.origem="offline"; await filaAdd(payload); mostrarResultado("offline", payload.tipo, null); registrarSync(); }
+function mostrarResultado(estado, tipo, resp){
+  const ic=document.getElementById("res-ic"), tit=document.getElementById("res-titulo"), msg=document.getElementById("res-msg");
+  const hora=horaBahia(new Date());
+  if(estado==="ok"){
+    ic.className="result-ic ric-ok"; ic.textContent="✅"; tit.textContent=CONF[tipo];
+    let m="às "+hora;
+    if(resp && resp.nome_local) m+=" — "+resp.nome_local;
+    if(resp && resp.fora_do_raio) m+="\n⚠️ Localização fora da área cadastrada — sujeito a revisão.";
+    msg.textContent=m;
+  }else{
+    ic.className="result-ic ric-off"; ic.textContent="📴"; tit.textContent="Registro salvo";
+    msg.textContent="Sem conexão — o registro foi salvo e será enviado automaticamente quando a internet voltar.";
+  }
+  go("s-resultado");
+}
+async function voltarHome(){ tipoPendente=null; go("s-home"); await refreshHome(); }
+
+/* SYNC FIFO */
+let sincronizando=false;
+async function sincronizarFila(){
+  if(sincronizando || !navigator.onLine) return; sincronizando=true;
+  try{
+    const itens=(await filaAll()).sort((a,b)=>a.registrado_em<b.registrado_em?-1:1);
+    for(const it of itens){
+      try{ const r=await fetch(EP.registrar,{ method:"POST", headers:{"Content-Type":"application/json"}, body:JSON.stringify(it) });
+        if(r.ok){ await filaDel(it.local_id); } else break; }catch(e){ break; }
+    }
+  } finally { sincronizando=false; await atualizarPendentes(); }
+}
+function registrarSync(){ if("serviceWorker" in navigator && "SyncManager" in window)
+  navigator.serviceWorker.ready.then(reg=>reg.sync.register("sync-pontos").catch(()=>{})).catch(()=>{}); }
+
+/* BOOT */
+async function boot(){
+  if("serviceWorker" in navigator){ try{ await navigator.serviceWorker.register("sw.js"); }catch(e){} }
+  window.addEventListener("online", ()=>{ atualizarRede(); sincronizarFila(); });
+  window.addEventListener("offline", atualizarRede);
+  setInterval(()=>{ if(navigator.onLine) sincronizarFila(); }, SYNC_INTERVAL_MS);
+  setInterval(tickClock, 1000);
+
+  const token=new URLSearchParams(location.search).get("t");
+  const sessao=getSessao();
+  if(sessao){ go("s-home"); await refreshHome(); sincronizarFila(); }
+  else if(token && IS_IOS && !IS_STANDALONE){ codigoPendente=token;
+    document.getElementById("cod-mostrar").textContent=token; go("s-instalar"); }
+  else if(token){ vincular(token); }
+  else go("s-novinculo");
+}
+document.addEventListener("DOMContentLoaded", boot);
+</script>
+</body>
+</html>
