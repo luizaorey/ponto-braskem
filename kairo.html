@@ -219,7 +219,7 @@
 <div id="toast" class="toast"></div>
 <canvas id="work-canvas"></canvas>
 
-<script src="face/face-api.min.js"></script>
+<script src="face/face-api-vm.js"></script>
 <script>
 /* ===== CONFIG ===== */
 const WEBHOOK_BASE = "https://giantfalcon-n8n.cloudfy.live/webhook";
@@ -295,17 +295,21 @@ function pegarGPS(){ return new Promise(res=>{ if(!navigator.geolocation) return
   navigator.geolocation.getCurrentPosition(p=>res({latitude:p.coords.latitude,longitude:p.coords.longitude,accuracy:p.coords.accuracy,ts:p.timestamp}),()=>res(null),{enableHighAccuracy:true,timeout:15000,maximumAge:0}); }); }
 
 /* ===== FACE (face-api.js) ===== */
+let faceErro="";
 async function carregarModelos(){
   if(faceReady) return true;
-  if(typeof faceapi==='undefined') return false;
-  try{ const U="face/models";
+  if(typeof faceapi==='undefined'){ faceErro="lib não carregou"; return false; }
+  try{
+    try{ await faceapi.tf.setBackend('webgl'); }catch(_){ try{ await faceapi.tf.setBackend('wasm'); }catch(__){} }
+    await faceapi.tf.ready();
+    const U="face/models";
     await faceapi.nets.tinyFaceDetector.loadFromUri(U);
     await faceapi.nets.faceLandmark68Net.loadFromUri(U);
     await faceapi.nets.faceRecognitionNet.loadFromUri(U);
     faceReady=true; return true;
-  }catch(e){ return false; }
+  }catch(e){ faceErro=(e&&e.message)||String(e); return false; }
 }
-function detOpts(){ return new faceapi.TinyFaceDetectorOptions({inputSize:288,scoreThreshold:0.45}); }
+function detOpts(){ return new faceapi.TinyFaceDetectorOptions({inputSize:224,scoreThreshold:0.4}); }
 function roundRect(ctx,x,y,w,h,r){ ctx.beginPath(); ctx.moveTo(x+r,y); ctx.arcTo(x+w,y,x+w,y+h,r); ctx.arcTo(x+w,y+h,x,y+h,r); ctx.arcTo(x,y+h,x,y,r); ctx.arcTo(x,y,x+w,y,r); ctx.closePath(); }
 function desenharBox(canvasId, video, box, cor){
   const c=document.getElementById(canvasId); if(!c) return; const ctx=c.getContext('2d');
