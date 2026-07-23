@@ -217,6 +217,7 @@
 </div>
 
 <div id="toast" class="toast"></div>
+<div style="position:fixed;bottom:4px;right:8px;font-size:10px;color:#8a9;z-index:60;opacity:.7">Kairo v9</div>
 <canvas id="work-canvas"></canvas>
 
 <script src="face/face-api-vm.js"></script>
@@ -498,8 +499,7 @@ async function boot(){
   const token=new URLSearchParams(location.search).get("t");
   const sessao=getSessao();
   if(sessao){ sincronizarFila(); irConsentimento(); }
-  else if(token && IS_IOS && !IS_STANDALONE){ codigoPendente=token; document.getElementById("cod-mostrar").textContent=token; go("s-instalar"); }
-  else if(token){ vincular(token); }
+  else if(token){ vincular(token); }   // ativa direto (sem etapa de "instalar primeiro")
   else go("s-novinculo");
 }
 document.addEventListener("DOMContentLoaded", boot);
