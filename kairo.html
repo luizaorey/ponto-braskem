@@ -53,14 +53,14 @@
   .scan-clock{ font-size:34px; font-weight:700; font-variant-numeric:tabular-nums; letter-spacing:.02em }
   .scan-hello{ font-size:18px; font-weight:600; margin-top:2px; color:#CFE0E3 }
   .scan-mid{ flex:1; display:flex; flex-direction:column; align-items:center; justify-content:center; gap:22px; width:100% }
-  .camwrap{ width:250px; height:250px; border-radius:50%; overflow:hidden; position:relative; background:#000;
-            box-shadow:0 0 0 4px rgba(255,255,255,.12) }
+  .camwrap{ width:82vw; max-width:320px; aspect-ratio:1/1; border-radius:26px; overflow:hidden; position:relative; background:#000 }
   .camwrap video{ width:100%; height:100%; object-fit:cover; transform:scaleX(-1) }
-  .ring{ position:absolute; inset:-10px; border-radius:50%; border:4px solid var(--orange); opacity:.85;
-         animation:pulse 1.4s ease-in-out infinite }
-  .ring.ok{ border-color:var(--green); animation:none }
+  .ring{ position:absolute; inset:0; border-radius:26px; border:3px solid rgba(255,255,255,.22); pointer-events:none; transition:border-color .2s }
+  .ring.ok{ border-color:var(--green); border-width:4px }
   .ring.bad{ border-color:var(--amber) }
-  @keyframes pulse{ 0%,100%{ transform:scale(1); opacity:.5 } 50%{ transform:scale(1.04); opacity:.95 } }
+  .flash{ position:absolute; inset:0; background:#fff; opacity:0; pointer-events:none }
+  .flash.go{ animation:flash .35s ease-out }
+  @keyframes flash{ 0%{ opacity:.85 } 100%{ opacity:0 } }
   .scan-status{ font-size:16px; color:#CFE0E3; text-align:center; min-height:22px }
   .scan-type{ font-size:14px; font-weight:700; letter-spacing:.12em; text-transform:uppercase; color:var(--orange);
               background:rgba(225,89,42,.14); padding:8px 18px; border-radius:20px }
@@ -142,13 +142,17 @@
 
   <!-- CADASTRO DE ROSTO -->
   <section id="s-cadastro" class="screen scan">
-    <div class="scan-top"><h2 style="color:#fff">Cadastro do rosto</h2></div>
+    <div class="scan-top"><h2 style="color:#fff">Cadastro do rosto</h2>
+      <div class="scan-hello">Tire 3 fotos do seu rosto</div></div>
     <div class="scan-mid">
-      <div class="camwrap"><video id="cad-video" playsinline autoplay muted></video><div class="ring"></div></div>
+      <div class="camwrap"><video id="cad-video" playsinline autoplay muted></video><div class="ring" id="cad-ring"></div><div class="flash" id="cad-flash"></div></div>
       <div class="prog" id="cad-prog">0 de 3</div>
-      <div class="scan-status" id="cad-status">Centralize o rosto no círculo</div>
+      <div class="scan-status" id="cad-status">Olhe para a câmera</div>
     </div>
-    <div class="scan-bottom"><button class="linkbtn" style="color:#CFE0E3" onclick="pularFace()">Pular (usar manual)</button></div>
+    <div class="scan-bottom">
+      <button class="btn primary" id="cad-btn" onclick="tirarFotoCadastro()">Tirar foto (1 de 3)</button>
+      <button class="linkbtn" style="color:#CFE0E3" onclick="pularFace()">Pular (usar manual)</button>
+    </div>
   </section>
 
   <!-- SCANNER (uso diário) -->
@@ -160,11 +164,11 @@
       <div class="scan-hello" id="scan-hello">Olá!</div>
     </div>
     <div class="scan-mid">
-      <div class="camwrap"><video id="scan-video" playsinline autoplay muted></video><div class="ring" id="scan-ring"></div></div>
+      <div class="camwrap"><video id="scan-video" playsinline autoplay muted></video><div class="ring" id="scan-ring"></div><div class="flash" id="scan-flash"></div></div>
       <div class="scan-type" id="scan-type">—</div>
-      <div class="scan-status" id="scan-status">Preparando reconhecimento…</div>
+      <div class="scan-status" id="scan-status">Olhe para a câmera</div>
     </div>
-    <div class="scan-bottom"></div>
+    <div class="scan-bottom"><button class="btn primary" id="scan-btn" onclick="baterPonto()">Bater ponto</button></div>
   </section>
 
   <!-- MANUAL: escolher tipo -->
@@ -316,28 +320,32 @@ async function aceitarBiometria(){ localStorage.setItem(LS_CONSENT,"1"); iniciar
 function pularFace(){ pararCam(); enrolling=false; localStorage.setItem(LS_CONSENT,"0"); irScanner(); }
 
 async function iniciarCadastro(){
-  enrollDescs=[]; enrolling=true; go("s-cadastro");
+  enrollDescs=[]; go("s-cadastro");
   document.getElementById("cad-prog").textContent="0 de 3";
-  document.getElementById("cad-status").textContent="Preparando…";
+  document.getElementById("cad-btn").textContent="Tirar foto (1 de 3)";
+  document.getElementById("cad-btn").disabled=true;
+  document.getElementById("cad-status").textContent="Preparando câmera…";
   const ok=await carregarModelos();
   if(!ok){ toast("Reconhecimento indisponível — modo manual"); pularFace(); return; }
   if(!await abrirCam("cad-video")){ toast("Não consegui abrir a câmera"); pularFace(); return; }
-  document.getElementById("cad-status").textContent="Centralize o rosto no círculo";
-  loopCadastro();
+  document.getElementById("cad-btn").disabled=false;
+  document.getElementById("cad-status").textContent="Olhe para a câmera e tire a foto";
 }
-async function loopCadastro(){
-  if(!enrolling || !document.getElementById("s-cadastro").classList.contains("active")) return;
-  if(enrollDescs.length>=3){ finalizarCadastro(); return; }
-  const v=document.getElementById("cad-video");
+function flash(id){ const f=document.getElementById(id); if(!f) return; f.classList.remove("go"); void f.offsetWidth; f.classList.add("go"); }
+async function tirarFotoCadastro(){
+  const v=document.getElementById("cad-video"); if(!v.videoWidth){ toast("Aguarde a câmera abrir…"); return; }
+  const btn=document.getElementById("cad-btn"); btn.disabled=true;
+  document.getElementById("cad-status").textContent="Analisando…";
   const desc=await descritorDoRosto(v);
-  if(desc){ enrollDescs.push(desc);
-    document.getElementById("cad-prog").textContent=enrollDescs.length+" de 3";
-    document.getElementById("cad-status").textContent=enrollDescs.length<3?"Boa! Mantenha o rosto…":"Pronto!";
-    await sleep(800);
-  }
-  setTimeout(loopCadastro,350);
+  if(!desc){ document.getElementById("cad-status").textContent="Não achei seu rosto — aproxime e tente de novo"; toast("Rosto não detectado"); btn.disabled=false; return; }
+  flash("cad-flash"); enrollDescs.push(desc);
+  const n=enrollDescs.length;
+  document.getElementById("cad-prog").textContent=n+" de 3";
+  if(n>=3){ finalizarCadastro(); return; }
+  btn.textContent="Tirar foto ("+(n+1)+" de 3)"; btn.disabled=false;
+  document.getElementById("cad-status").textContent="Boa! Agora a "+(n+1)+"ª foto";
 }
-function finalizarCadastro(){ enrolling=false; localStorage.setItem(LS_FACE,JSON.stringify(enrollDescs)); pararCam(); toast("Rosto cadastrado ✓"); irScanner(); }
+function finalizarCadastro(){ localStorage.setItem(LS_FACE,JSON.stringify(enrollDescs)); pararCam(); toast("Rosto cadastrado ✓"); irScanner(); }
 
 /* ===== SCANNER (uso diário) ===== */
 async function calcularProximoTipo(){
@@ -349,37 +357,33 @@ async function calcularProximoTipo(){
   return SEQ[ultimo||""]||"entrada";
 }
 async function irScanner(){
-  scanning=false; pararCam(); go("s-scan");
+  pararCam(); go("s-scan");
   const s=getSessao();
   document.getElementById("scan-hello").textContent="Olá, "+primeiroNome(s?s.nome:"")+"!";
   tickClock();
+  const ring=document.getElementById("scan-ring"); ring.className="ring";
+  const btn=document.getElementById("scan-btn");
   proximoTipo=await calcularProximoTipo();
   document.getElementById("scan-type").textContent="Vai registrar: "+LABELS[proximoTipo].toUpperCase();
-  const ring=document.getElementById("scan-ring"); ring.className="ring";
-  if(!temFace()){ document.getElementById("scan-status").textContent="Sem rosto cadastrado — use o botão Manual"; return; }
+  if(!temFace()){ document.getElementById("scan-status").textContent="Sem rosto cadastrado — use o botão Manual"; btn.style.display="none"; return; }
+  btn.style.display="block"; btn.disabled=true; btn.textContent="Preparando câmera…";
   document.getElementById("scan-status").textContent="Preparando reconhecimento…";
   const ok=await carregarModelos();
-  if(!ok){ document.getElementById("scan-status").textContent="Reconhecimento indisponível — use Manual"; return; }
-  if(!await abrirCam("scan-video")){ document.getElementById("scan-status").textContent="Câmera indisponível — use Manual"; return; }
-  document.getElementById("scan-status").textContent="Posicione seu rosto no círculo";
-  scanning=true; loopScan();
+  if(!ok){ document.getElementById("scan-status").textContent="Reconhecimento indisponível — use Manual"; btn.style.display="none"; return; }
+  if(!await abrirCam("scan-video")){ document.getElementById("scan-status").textContent="Câmera indisponível — use Manual"; btn.style.display="none"; return; }
+  document.getElementById("scan-status").textContent="Olhe para a câmera e toque em Bater ponto";
+  btn.disabled=false; btn.textContent="Bater ponto";
 }
-async function loopScan(){
-  if(!scanning || !document.getElementById("s-scan").classList.contains("active")) return;
-  const v=document.getElementById("scan-video");
-  const st=document.getElementById("scan-status"), ring=document.getElementById("scan-ring");
+async function baterPonto(){
+  const v=document.getElementById("scan-video"); if(!v.videoWidth){ toast("Aguarde a câmera abrir…"); return; }
+  const ring=document.getElementById("scan-ring"), st=document.getElementById("scan-status"), btn=document.getElementById("scan-btn");
+  btn.disabled=true; st.textContent="Reconhecendo…";
   const desc=await descritorDoRosto(v);
-  if(desc){
-    const m=bateComCadastro(desc);
-    if(m.match){ scanning=false; return reconhecido(); }
-    ring.className="ring bad"; st.textContent="Rosto não reconhecido — tente de novo";
-  } else { ring.className="ring"; st.textContent="Posicione seu rosto no círculo"; }
-  setTimeout(loopScan,350);
-}
-async function reconhecido(){
-  const ring=document.getElementById("scan-ring"); ring.className="ring ok";
-  document.getElementById("scan-status").textContent="Reconhecido! Registrando "+LABELS[proximoTipo].toLowerCase()+"…";
-  const v=document.getElementById("scan-video");
+  if(!desc){ ring.className="ring bad"; st.textContent="Não achei seu rosto — aproxime e tente de novo"; btn.disabled=false; return; }
+  const m=bateComCadastro(desc);
+  if(!m.match){ ring.className="ring bad"; st.textContent="Não reconheci você — tente de novo ou use Manual"; btn.disabled=false; return; }
+  ring.className="ring ok"; flash("scan-flash");
+  st.textContent="Reconhecido! Registrando "+LABELS[proximoTipo].toLowerCase()+"…";
   const agora=new Date(); const foto=comprimir(v); const gps=await pegarGPS(); pararCam();
   await enviarRegistro({tipo:proximoTipo,agora,foto,gps});
 }
